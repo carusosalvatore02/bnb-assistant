@@ -346,6 +346,27 @@ function sendMsg(){
   }).catch(function(e){removeTyping();addMsg('ai','Errore di connessione: '+e.message);});
 }
 function askQ(q){document.getElementById('chat-input').value=q;showTab('chat');sendMsg();}
+function togglePagamento(codice){
+  var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+  if(!notes[codice]) notes[codice] = {};
+  notes[codice].pagamentoOk = !notes[codice].pagamentoOk;
+  localStorage.setItem('bnb_notes', JSON.stringify(notes));
+  // Aggiorna tutti i badge con questo codice
+  document.querySelectorAll('#badge-pag-'+codice).forEach(function(el){
+    el.textContent = notes[codice].pagamentoOk ? '✓ Regolare' : '⚠ Da regolarizzare';
+    el.className = 'rsbadge ' + (notes[codice].pagamentoOk ? 'b-ok' : 'b-ko');
+  });
+}
+
+function saveNote(codice){
+  var ta = document.getElementById('note-'+codice);
+  if(!ta) return;
+  var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+  if(!notes[codice]) notes[codice] = {};
+  notes[codice].note = ta.value;
+  localStorage.setItem('bnb_notes', JSON.stringify(notes));
+}
+
 function resetApiKey(){localStorage.removeItem('bnb_apikey');addMsg('ai','API key rimossa. Alla prossima domanda ti verrà chiesta di nuovo.');}
 
 // ─── REPORTS ─────────────────────────────────────────────
@@ -355,7 +376,7 @@ function openReport(type){
   modal.classList.add('open');
   var today=new Date();today.setHours(0,0,0,0);
   var todayStr=ds(today),label=today.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  var map={colazione:['Colazioni',reportColazione],pulizie:['Pulizie',reportPulizie],reception:['Reception',reportReception],settimanale:['Riepilogo settimanale',reportSettimanale]};
+  var map={colazione:['Colazioni',reportColazione],pulizie:['Pulizie',reportPulizie],reception:['Reception',reportReception],camere:['Report Camere',reportCamere],settimanale:['Riepilogo settimanale',reportSettimanale]};
   if(map[type]){title.textContent=map[type][0];body.innerHTML=map[type][1](today,todayStr,label);}
 }
 function closeReport(){document.getElementById('rmodal').classList.remove('open');}
@@ -389,17 +410,194 @@ function reportPulizie(today,todayStr,label){
   return'<div class="rdate">'+label+'</div>'+sec('Libera e pulizia a fondo',cos,'lib')+sec('Pulizia ordinaria (in-stay)',ins,'ins')+sec('Prepara per nuovi arrivi',cis,'pre')+(cos.length+ins.length+cis.length===0?'<div class="nodata">Nessuna pulizia oggi</div>':'')+'<div class="totbox"><div class="totrow"><span class="tlab">Pulizie a fondo</span><span>'+cos.length+'</span></div><div class="totrow"><span class="tlab">Ordinarie</span><span>'+ins.length+'</span></div><div class="totrow"><span class="tlab">Da preparare</span><span>'+cis.length+'</span></div><div class="totrow main"><span>Totale camere</span><span>'+(cos.length+ins.length+cis.length)+'</span></div></div>';
 }
 function reportReception(today,todayStr,label){
-  var cis=bookings.filter(function(b){return ds(b.checkin)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
-  var cos=bookings.filter(function(b){return ds(b.checkout)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
-  var totInc=cis.filter(function(b){return!b.canale.toLowerCase().includes('booking');}).reduce(function(s,b){return s+b.importo+b.tassa;},0);
-  var totTasse=cis.reduce(function(s,b){return s+b.tassa;},0);
-  var arrRows=cis.map(function(b){
-    var isB=b.canale.toLowerCase().includes('booking');
-    return'<div class="rsrow"><div class="rsleft"><div class="rsname">'+b.nome+' '+b.cognome+'</div><div class="rsdetail">'+b.camera+' · '+b.adulti+' adulti · CO: '+fmtDate(b.checkout)+'</div><span class="rsbadge '+(isB?'b-bk':'b-si')+'">'+(isB?'Booking — pagato online':'Sito diretto')+'</span></div><div class="rsright"><div class="rsval">€'+b.importo+'</div><div class="rssub">'+(isB?'Tassa: €'+b.tassa:'Da incassare: €'+(b.importo+b.tassa))+'</div></div></div>';
-  }).join('');
-  var coRows=cos.map(function(b){return'<div class="rsrow"><div class="rsleft"><div class="rsname">'+b.nome+' '+b.cognome+'</div><div class="rsdetail">'+b.camera+'</div></div><div class="rsright"><div class="rsval" style="color:var(--accent-d)">Check-out</div></div></div>';}).join('');
-  return'<div class="rdate">'+label+'</div><div class="rsec"><div class="rstitle">Arrivi oggi ('+cis.length+')</div>'+(arrRows||'<div class="nodata">Nessun arrivo</div>')+'</div><div class="rsec"><div class="rstitle">Partenze oggi ('+cos.length+')</div>'+(coRows||'<div class="nodata">Nessuna partenza</div>')+'</div><div class="totbox"><div class="totrow"><span class="tlab">Tasse soggiorno da incassare</span><span>€'+totTasse.toFixed(2)+'</span></div><div class="totrow main"><span>Totale da incassare</span><span>€'+Math.round(totInc).toLocaleString('it-IT')+'</span></div></div>';
+  // Legge note e pagamenti dal localStorage
+  var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+
+  var cis = bookings.filter(function(b){return ds(b.checkin)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
+  var cos = bookings.filter(function(b){return ds(b.checkout)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
+
+  function getCanale(b){
+    var c = (b.canale||'').toLowerCase();
+    var n = (b.nome||'').toLowerCase();
+    if(n.includes('air bb')||n.includes('airbnb')) return 'Airbnb';
+    if(c.includes('booking engine') || c.includes('sitoweb') || c.includes('sito web')) return 'Sito Web';
+    if(c.includes('booking')) return 'Booking.com';
+    if(c.includes('ireservation')||c.includes('diretto')) return 'Diretto';
+    return b.canale||'—';
+  }
+
+  function getNotti(b){
+    if(!b.checkin||!b.checkout) return 0;
+    return Math.round((b.checkout - b.checkin)/86400000);
+  }
+
+  // Tassa soggiorno: 4€/persona/notte max 4 notti, solo adulti + bambini ≥12 anni
+  // NB: non abbiamo l'età dei bambini nel file, usiamo il numero bambini come proxy
+  // Per booking.com la tassa è già scorporata, per altri va calcolata
+  function calcTassa(b){
+    var notti = Math.min(getNotti(b), 4);
+    var persone = b.adulti; // bambini: non sappiamo l'età, li escludiamo per sicurezza
+    // Se il campo bambini è > 0, mostriamo nota "verificare età"
+    return persone * notti * 4;
+  }
+
+  function getCanaleLabel(b){
+    var c = getCanale(b);
+    var map = {'Booking.com':'b-bk','Sito Web':'b-si','Airbnb':'b-ab','Diretto':'b-dir'};
+    return '<span class="rsbadge '+(map[c]||'b-dir')+'">'+c+'</span>';
+  }
+
+  function isPagato(b){
+    var c = getCanale(b);
+    return c === 'Booking.com';
+  }
+
+  function quotaSoggiorno(b){
+    // Booking.com: già pagato online (importo già incassato da Booking)
+    // Altri: da incassare all'arrivo
+    if(isPagato(b)) return {quota: b.importo, note: 'Pagato a Booking.com', color: 'var(--accent-d)'};
+    return {quota: b.importo, note: 'Da incassare', color: 'var(--coral-d)'};
+  }
+
+  function rowArrivo(b){
+    var notti = getNotti(b);
+    var canale = getCanale(b);
+    var tassa = calcTassa(b);
+    var qs = quotaSoggiorno(b);
+    var pagato = isPagato(b);
+    var nd = notes[b.codice]||{};
+    var pagamentoOk = nd.pagamentoOk || false;
+    var noteText = nd.note || '';
+    var hasBimbi = b.bambini > 0;
+
+    return '<div class="rec-card" id="rec-'+b.codice+'">' +
+      '<div class="rec-header">' +
+        '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
+        getCanaleLabel(b) +
+        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'" style="cursor:pointer" onclick="togglePagamento(''+b.codice+'')" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
+      '</div>' +
+      '<div class="rec-grid">' +
+        '<div class="rec-item"><span class="rec-lbl">Check-in</span><span class="rec-val">'+fmtDate(b.checkin)+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Check-out</span><span class="rec-val">'+fmtDate(b.checkout)+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Notti</span><span class="rec-val">'+notti+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Camera</span><span class="rec-val">'+b.camera+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Bambini</span><span class="rec-val">'+(b.bambini||0)+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Soggiorno</span><span class="rec-val" style="color:'+qs.color+'">€'+qs.quota+' — '+qs.note+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Tassa soggiorno</span><span class="rec-val">'+(pagato?'<span style="color:var(--text2)">Scorporata da Booking</span>':'€'+tassa+(hasBimbi?' <small style="color:var(--text2)">(verificare età bambini)</small>':''))+'</span></div>' +
+      '</div>' +
+      '<div class="rec-note-wrap">' +
+        '<textarea class="rec-note" id="note-'+b.codice+'" placeholder="Note ospite (allergie, preferenze, richieste…)" onblur="saveNote(''+b.codice+'')" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;resize:none;min-height:52px;font-family:inherit">'+noteText+'</textarea>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function rowPartenza(b){
+    var nd = notes[b.codice]||{};
+    var pagamentoOk = nd.pagamentoOk || false;
+    var notti = getNotti(b);
+    return '<div class="rec-card checkout-card">' +
+      '<div class="rec-header">' +
+        '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
+        '<span class="rsbadge b-out">Check-out</span>' +
+        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'" style="cursor:pointer" onclick="togglePagamento(''+b.codice+'')" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
+      '</div>' +
+      '<div class="rec-grid">' +
+        '<div class="rec-item"><span class="rec-lbl">Camera</span><span class="rec-val">'+b.camera+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Notti</span><span class="rec-val">'+notti+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  var html = '<div class="rdate">'+label+'</div>';
+
+  if(cis.length){
+    html += '<div class="rstitle" style="margin-bottom:10px">🟢 Arrivi di oggi ('+cis.length+')</div>';
+    html += cis.map(rowArrivo).join('');
+  } else {
+    html += '<div class="nodata" style="margin-bottom:12px">Nessun arrivo oggi</div>';
+  }
+
+  if(cos.length){
+    html += '<div class="rstitle" style="margin:14px 0 10px">🔴 Partenze di oggi ('+cos.length+')</div>';
+    html += cos.map(rowPartenza).join('');
+  } else {
+    html += '<div class="nodata">Nessuna partenza oggi</div>';
+  }
+
+  return html;
 }
+
+function reportCamere(today,todayStr,label){
+  var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+  var html = '<div class="rdate">'+label+'</div>';
+  html += '<div class="rstitle" style="margin-bottom:10px">Prossimi 7 giorni</div>';
+
+  // Costruiamo tabella giorno per giorno
+  var days = [];
+  for(var i=0;i<7;i++){
+    var d = new Date(today);
+    d.setDate(d.getDate()+i);
+    days.push(d);
+  }
+
+  days.forEach(function(day){
+    var dayStr = ds(day);
+    var dayLabel = day.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+
+    // Trova prenotazioni attive in questo giorno
+    var active = bookings.filter(function(b){
+      return (b.stato==='Attiva'||b.stato==='Modificata') &&
+             b.checkin <= day && b.checkout > day;
+    });
+
+    if(!active.length){
+      html += '<div class="cam-day"><div class="cam-day-hdr">'+dayLabel+'</div>' +
+              '<div class="nodata" style="padding:8px 0;font-size:12px">Nessuna camera occupata</div></div>';
+      return;
+    }
+
+    html += '<div class="cam-day"><div class="cam-day-hdr">'+dayLabel+'</div>';
+
+    active.forEach(function(b){
+      var checkinDay = Math.round((day - b.checkin)/86400000); // giorni dall'arrivo (0=giorno arrivo)
+      var notti = Math.round((b.checkout - b.checkin)/86400000);
+      var isCheckout = ds(b.checkout) === dayStr;
+      var isCheckin  = ds(b.checkin)  === dayStr;
+
+      var tipoPulizia;
+      if(isCheckout){
+        tipoPulizia = '🔴 In partenza — Pulizia a fondo';
+      } else if(isCheckin){
+        tipoPulizia = '🟢 Arrivo — Prepara camera';
+      } else {
+        tipoPulizia = '🔵 In fermata — Riassetto';
+      }
+
+      var nd = notes[b.codice]||{};
+      var pagamentoOk = nd.pagamentoOk||false;
+      var noteText = nd.note||'';
+      var ospiti = b.adulti + (b.bambini||0);
+
+      html += '<div class="cam-row">' +
+        '<div class="cam-row-hdr">' +
+          '<span class="cam-nome">'+b.camera+'</span>' +
+          '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'">'+(pagamentoOk?'✓ Reg.':'⚠ Pag.')+'</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text2);margin:3px 0">'+b.cognome+' '+b.nome+' · Notte '+(isCheckout?notti:checkinDay+1)+'/'+notti+'</div>'+
+        '<div style="font-size:12px;margin:3px 0">'+tipoPulizia+'</div>' +
+        '<div style="font-size:12px;color:var(--text2)">👥 '+ospiti+' ospiti ('+b.adulti+' adulti'+(b.bambini?' + '+b.bambini+' bimbi':'')+')</div>' +
+        (noteText?'<div style="font-size:11px;color:var(--text2);margin-top:4px;padding:5px;background:var(--bg3);border-radius:6px">📝 '+noteText+'</div>':'') +
+      '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  return html;
+}
+
 function reportSettimanale(today,todayStr,label){
   var we=new Date(today);we.setDate(we.getDate()+7);
   var wk=bookings.filter(function(b){return b.checkin>=today&&b.checkin<we&&(b.stato==='Attiva'||b.stato==='Modificata');});

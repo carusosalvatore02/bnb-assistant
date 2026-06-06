@@ -160,6 +160,30 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
 .cb.checked::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
 .cblabel{font-size:14px;flex:1}.cbdetail{font-size:11px;color:var(--text2)}
 .nodata{font-size:13px;color:var(--text3);text-align:center;padding:24px 0}
+
+/* RECEPTION */
+.rec-card{background:var(--bg2);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;border:0.5px solid var(--border)}
+.checkout-card{opacity:.85}
+.rec-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.rec-name{font-size:14px;font-weight:600;flex:1;min-width:120px}
+.rec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.rec-item{display:flex;flex-direction:column;gap:2px}
+.rec-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.rec-val{font-size:13px;font-weight:500;color:var(--text)}
+.rec-note-wrap{margin-top:4px}
+
+/* CAMERE */
+.cam-day{background:var(--bg2);border-radius:var(--r);padding:12px 14px;margin-bottom:10px}
+.cam-day-hdr{font-size:12px;font-weight:700;color:var(--accent-d);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)}
+.cam-row{padding:8px 0;border-bottom:0.5px solid var(--border)}
+.cam-row:last-child{border-bottom:none}
+.cam-row-hdr{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.cam-nome{font-size:13px;font-weight:600;flex:1}
+
+/* BADGE AGGIUNTIVI */
+.b-ab{background:#f5e9fb;color:#7c3aed}
+.b-dir{background:#fef3c7;color:#92400e}
+.b-out{background:var(--coral-l);color:var(--coral-d)}
 </style>
 </head>
 <body>
@@ -246,6 +270,7 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
         <div class="rcard" data-report="colazione"><div class="ricon ri-g">☕</div><div class="rinfo"><div class="rtitle">Colazioni</div><div class="rdesc">Ospiti presenti, coperti per camera</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="pulizie"><div class="ricon ri-b">🧹</div><div class="rinfo"><div class="rtitle">Pulizie</div><div class="rdesc">Check-out, in-stay, nuovi arrivi</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="reception"><div class="ricon ri-a">💳</div><div class="rinfo"><div class="rtitle">Reception</div><div class="rdesc">Chi paga oggi e quanto</div></div><span class="rarrow">›</span></div>
+        <div class="rcard" data-report="camere"><div class="ricon ri-b">🛏️</div><div class="rinfo"><div class="rtitle">Report Camere</div><div class="rdesc">Stato camere e pulizie — prossimi 7 giorni</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="settimanale"><div class="ricon ri-p">📊</div><div class="rinfo"><div class="rtitle">Riepilogo settimanale</div><div class="rdesc">Incassi, occupazione, statistiche</div></div><span class="rarrow">›</span></div>
       </div>
     </div>
