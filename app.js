@@ -1,4 +1,4 @@
-const EPOCH = new Date(1899, 11, 30);
+const EPOCH = new Date(Date.UTC(1899, 11, 30)); // EPOCH UTC esatta per Excel
 
 // Parsa una stringa data (YYYY-MM-DD o ISO) come data locale senza offset UTC
 function parseLocalDate(s) {
