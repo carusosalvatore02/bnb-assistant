@@ -2,9 +2,271 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<!-- PLACEHOLDER - contenuto reale verrà incollato -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="B&B Assistant">
+<meta name="theme-color" content="#1D9E75">
+<title>B&B Assistant</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#1D9E75;--accent-l:#E1F5EE;--accent-d:#0F6E56;
+  --coral-l:#FAECE7;--coral-d:#993C1D;
+  --bg:#fff;--bg2:#f5f5f2;--bg3:#ebebea;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9a9a96;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --r:12px;--r-sm:8px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+    --text:#f0efe8;--text2:#a0a09a;--text3:#6b6b66;
+    --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
+    --accent-l:#0a3d2b;--accent-d:#5DCAA5;
+    --coral-l:#3d1a10;--coral-d:#f0997b;
+  }
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}
+body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:480px;margin:0 auto}
+
+/* HEADER */
+#header{display:flex;align-items:center;justify-content:space-between;padding:env(safe-area-inset-top,14px) 16px 12px;padding-top:max(env(safe-area-inset-top),14px);border-bottom:0.5px solid var(--border);background:var(--bg);flex-shrink:0}
+#hl{display:flex;align-items:center;gap:10px}
+#logo{width:34px;height:34px;border-radius:var(--r-sm);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px}
+#app-name{font-size:15px;font-weight:600}
+#app-sub{font-size:11px;color:var(--text2);margin-top:1px}
+#sync-btn{display:flex;align-items:center;gap:6px;font-size:13px;padding:8px 14px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit}
+#sync-btn:active{background:var(--bg2)}
+#sync-btn .spin{display:inline-block}
+#sync-btn.loading .spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* STATUS */
+#status-bar{padding:7px 16px;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2);background:var(--bg2);border-bottom:0.5px solid var(--border);flex-shrink:0;min-height:34px}
+#status-bar.ok{color:var(--accent-d);background:var(--accent-l)}
+#status-bar.err{color:var(--coral-d);background:var(--coral-l)}
+
+/* ISTRUZIONI PRIMO AVVIO */
+#onboarding{flex:1;overflow-y:auto;padding:24px 20px;display:flex;flex-direction:column;gap:16px}
+.ob-title{font-size:20px;font-weight:700;color:var(--text)}
+.ob-sub{font-size:14px;color:var(--text2);line-height:1.5}
+.ob-step{display:flex;align-items:flex-start;gap:12px;background:var(--bg2);border-radius:var(--r);padding:14px}
+.ob-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.ob-text{font-size:13px;color:var(--text2);line-height:1.5}
+.ob-text strong{color:var(--text);font-weight:600}
+.ob-link{display:block;padding:14px;background:var(--accent);color:#fff;border-radius:var(--r);text-align:center;font-size:15px;font-weight:600;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.ob-note{font-size:12px;color:var(--text3);text-align:center;line-height:1.5}
+
+/* TABS */
+#tabs{display:flex;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg)}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;-webkit-tap-highlight-color:transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* SCROLL AREA */
+#scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* STATS */
+#stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 8px}
+.scard{background:var(--bg2);border-radius:var(--r-sm);padding:11px 12px}
+.slabel{font-size:10px;color:var(--text2);margin-bottom:4px}
+.sval{font-size:24px;font-weight:600;color:var(--text);line-height:1}
+.ssub{font-size:10px;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* TODAY */
+#today-wrap{padding:0 14px 12px}
+.sec-label{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;margin-top:4px}
+.brow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.brow:last-child{border-bottom:none}
+.bavatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.av-in{background:var(--accent-l);color:var(--accent-d)}
+.av-out{background:var(--coral-l);color:var(--coral-d)}
+.binfo{flex:1;min-width:0}
+.bname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.broom{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbadge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:500;flex-shrink:0}
+.badge-in{background:var(--accent-l);color:var(--accent-d)}
+.badge-out{background:var(--coral-l);color:var(--coral-d)}
+.empty{font-size:13px;color:var(--text3);text-align:center;padding:16px 0}
+
+/* CHAT */
+#chat-wrap{display:flex;flex-direction:column;height:calc(100dvh - 180px)}
+#messages{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:8px}
+.msg.user{flex-direction:row-reverse}
+.bubble{max-width:82%;padding:9px 13px;font-size:14px;line-height:1.5;border-radius:16px}
+.msg.ai .bubble{background:var(--bg2);color:var(--text);border-radius:4px 16px 16px 16px}
+.msg.user .bubble{background:var(--accent);color:#fff;border-radius:16px 4px 16px 16px}
+.micon{width:26px;height:26px;border-radius:50%;background:var(--accent-l);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:14px}
+.typing{display:flex;gap:4px;align-items:center}
+.typing span{width:7px;height:7px;background:var(--text3);border-radius:50%;animation:bounce 1.1s infinite}
+.typing span:nth-child(2){animation-delay:.18s}
+.typing span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+#qbtns{display:flex;gap:7px;overflow-x:auto;padding:8px 14px 0;scrollbar-width:none}
+#qbtns::-webkit-scrollbar{display:none}
+.qbtn{white-space:nowrap;font-size:12px;padding:6px 12px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer;flex-shrink:0;font-family:inherit;-webkit-tap-highlight-color:transparent}
+.qbtn:active{background:var(--accent-l)}
+
+/* INPUT */
+#input-row{display:flex;gap:8px;padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--bg);border-top:0.5px solid var(--border);flex-shrink:0}
+#chat-input{flex:1;padding:10px 14px;border-radius:22px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:15px;outline:none;font-family:inherit}
+#chat-input:focus{border-color:var(--accent)}
+#send-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;font-size:16px;-webkit-tap-highlight-color:transparent;margin-top:auto}
+#send-btn:active{opacity:.8}
+
+/* REPORTS */
+#reports-list{padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.rcard{background:var(--bg2);border-radius:var(--r);padding:13px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border:0.5px solid transparent;-webkit-tap-highlight-color:transparent}
+.rcard:active{background:var(--accent-l)}
+.ricon{width:38px;height:38px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.ri-g{background:var(--accent-l)}
+.ri-b{background:#E6F1FB}
+.ri-a{background:#FAEEDA}
+.ri-p{background:#EEEDFE}
+.rinfo{flex:1}
+.rtitle{font-size:14px;font-weight:500}
+.rdesc{font-size:11px;color:var(--text2);margin-top:2px}
+.rarrow{color:var(--text3);font-size:18px}
+
+/* REPORT MODAL */
+#rmodal{display:none;position:fixed;inset:0;background:var(--bg);z-index:200;flex-direction:column}
+#rmodal.open{display:flex}
+#rmodal-hdr{display:flex;align-items:center;gap:10px;padding:max(env(safe-area-inset-top),14px) 14px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+#rmodal-back{background:none;border:none;cursor:pointer;color:var(--text);font-size:22px;padding:0;line-height:1;-webkit-tap-highlight-color:transparent}
+#rmodal-title{font-size:15px;font-weight:600;flex:1}
+#rmodal-print{background:var(--accent);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent}
+#rmodal-body{flex:1;overflow-y:auto;padding:14px 16px}
+.rdate{font-size:11px;color:var(--text2);margin-bottom:12px}
+.rsec{margin-bottom:16px}
+.rstitle{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)}
+.rsrow{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:0.5px solid var(--border);gap:8px}
+.rsrow:last-child{border-bottom:none}
+.rsleft{flex:1}.rsname{font-size:14px;font-weight:500}.rsdetail{font-size:11px;color:var(--text2);margin-top:2px}
+.rsright{text-align:right;flex-shrink:0}.rsval{font-size:14px;font-weight:600}.rssub{font-size:10px;color:var(--text2)}
+.rsbadge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:12px;font-weight:500;margin-top:3px}
+.b-bk{background:#E6F1FB;color:#185FA5}.b-si{background:#FAEEDA;color:#854F0B}
+.b-ok{background:var(--accent-l);color:var(--accent-d)}.b-ko{background:var(--coral-l);color:var(--coral-d)}
+.totbox{background:var(--bg2);border-radius:var(--r-sm);padding:11px 13px;margin-top:10px}
+.totrow{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+.totrow.main{font-size:15px;font-weight:600;border-top:0.5px solid var(--border);margin-top:6px;padding-top:8px}
+.tlab{color:var(--text2)}
+.cbrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.cbrow:last-child{border-bottom:none}
+.cb{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cb.checked{background:var(--accent);border-color:var(--accent)}
+.cb.checked::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
+.cblabel{font-size:14px;flex:1}.cbdetail{font-size:11px;color:var(--text2)}
+.nodata{font-size:13px;color:var(--text3);text-align:center;padding:24px 0}
+</style>
 </head>
 <body>
+
+<div id="header">
+  <div id="hl">
+    <div id="logo">🏠</div>
+    <div>
+      <div id="app-name">B&amp;B Assistant</div>
+      <div id="app-sub">—</div>
+    </div>
+  </div>
+  <button id="sync-btn"><span class="spin">↻</span> Sincronizza</button>
+</div>
+
+<div id="status-bar">
+  <span id="status-text">Premi Sincronizza per caricare le prenotazioni</span>
+</div>
+
+<!-- ONBOARDING (visibile solo al primo avvio o se non loggato) -->
+<div id="onboarding" style="display:none">
+  <div class="ob-title">Benvenuto 👋</div>
+  <div class="ob-sub">Per sincronizzare automaticamente le prenotazioni, segui questi passi:</div>
+  <div class="ob-step">
+    <div class="ob-num">1</div>
+    <div class="ob-text">Apri il gestionale e <strong>fai login</strong> con le tue credenziali</div>
+  </div>
+  <div class="ob-step">
+    <div class="ob-num">2</div>
+    <div class="ob-text">Vai su <strong>Prenotazioni → Esporta in Excel</strong> e scarica il file</div>
+  </div>
+  <div class="ob-step">
+    <div class="ob-num">3</div>
+    <div class="ob-text">Torna qui e premi <strong>Sincronizza</strong> — l'app scaricherà i dati direttamente</div>
+  </div>
+  <a href="https://www.bed-and-breakfast.it/ar/prenotazioni.cfm" target="_blank" class="ob-link">Apri il gestionale →</a>
+  <div class="ob-note">Dopo aver fatto login sul gestionale, torna qui e premi Sincronizza. L'app userà la tua sessione attiva.</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+  <div id="tabs">
+    <div class="tab active" data-tab="oggi">Oggi</div>
+    <div class="tab" data-tab="chat">Chat AI</div>
+    <div class="tab" data-tab="report">Report</div>
+  </div>
+
+  <div id="scroll-area">
+    <div id="tab-oggi" class="tab-content active">
+      <div id="stats-grid">
+        <div class="scard"><div class="slabel">Check-in oggi</div><div class="sval" id="s-ci">0</div><div class="ssub" id="s-ci-n">—</div></div>
+        <div class="scard"><div class="slabel">Check-out oggi</div><div class="sval" id="s-co">0</div><div class="ssub" id="s-co-n">—</div></div>
+        <div class="scard"><div class="slabel">Arrivi settimana</div><div class="sval" id="s-wk">0</div><div class="ssub" id="s-wk-n">—</div></div>
+        <div class="scard"><div class="slabel">Incasso attivo</div><div class="sval" id="s-rev">€0</div><div class="ssub" id="s-rev-n">—</div></div>
+      </div>
+      <div id="today-wrap">
+        <div class="sec-label">Movimenti di oggi</div>
+        <div id="today-list"><div class="empty">Nessun dato</div></div>
+      </div>
+    </div>
+
+    <div id="tab-chat" class="tab-content">
+      <div id="chat-wrap">
+        <div id="messages">
+          <div class="msg ai">
+            <div class="micon">🤖</div>
+            <div class="bubble">Ciao! Sono il tuo assistente B&amp;B. Chiedimi qualsiasi cosa sulle prenotazioni.</div>
+          </div>
+        </div>
+        <div id="qbtns">
+          <button class="qbtn" data-q="Chi arriva oggi?">Arrivi oggi</button>
+          <button class="qbtn" data-q="Chi parte questa settimana?">Partenze settimana</button>
+          <button class="qbtn" data-q="Riepilogo del mese corrente">Riepilogo mese</button>
+          <button class="qbtn" data-q="Camere occupate oggi?">Camere oggi</button>
+          <button class="qbtn" data-q="Booking vs sito web?">Booking vs sito</button>
+          <button class="qbtn" data-q="Incasso netto questo mese tolte commissioni e tasse?">Incasso netto</button>
+          <button class="qbtn" data-q="Da quali paesi vengono i miei ospiti?">Per paese</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-report" class="tab-content">
+      <div id="reports-list">
+        <div class="rcard" data-report="colazione"><div class="ricon ri-g">☕</div><div class="rinfo"><div class="rtitle">Colazioni</div><div class="rdesc">Ospiti presenti, coperti per camera</div></div><span class="rarrow">›</span></div>
+        <div class="rcard" data-report="pulizie"><div class="ricon ri-b">🧹</div><div class="rinfo"><div class="rtitle">Pulizie</div><div class="rdesc">Check-out, in-stay, nuovi arrivi</div></div><span class="rarrow">›</span></div>
+        <div class="rcard" data-report="reception"><div class="ricon ri-a">💳</div><div class="rinfo"><div class="rtitle">Reception</div><div class="rdesc">Chi paga oggi e quanto</div></div><span class="rarrow">›</span></div>
+        <div class="rcard" data-report="settimanale"><div class="ricon ri-p">📊</div><div class="rinfo"><div class="rtitle">Riepilogo settimanale</div><div class="rdesc">Incassi, occupazione, statistiche</div></div><span class="rarrow">›</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-row">
+    <input type="text" id="chat-input" placeholder="Chiedimi qualcosa…">
+    <button id="send-btn">➤</button>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div id="rmodal">
+  <div id="rmodal-hdr">
+    <button id="rmodal-back">‹</button>
+    <span id="rmodal-title"></span>
+    <button id="rmodal-print">Stampa</button>
+  </div>
+  <div id="rmodal-body"></div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>
