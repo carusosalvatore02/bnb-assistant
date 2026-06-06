@@ -31,6 +31,8 @@ function bindEvents() {
   document.getElementById('input-row').style.display = 'none';
   var cancelBtn = document.getElementById('file-panel-cancel');
   if (cancelBtn) cancelBtn.addEventListener('click', hideFilePanel);
+  var resetApiBtn = document.getElementById('reset-api-btn');
+  if (resetApiBtn) resetApiBtn.addEventListener('click', resetApiKey);
 }
 
 // ─── STORAGE ─────────────────────────────────────────────
@@ -207,7 +209,13 @@ function processData(rows) {
   renderAll();
 }
 
-function excelDate(n){if(!n||isNaN(n))return null;return new Date(EPOCH.getTime()+n*86400000);}
+function excelDate(n){
+  if(!n||isNaN(n))return null;
+  // Convertiamo il numero seriale Excel in data locale (senza offset UTC)
+  var d = new Date(EPOCH.getTime() + n * 86400000);
+  // Creiamo una data usando solo anno/mese/giorno locali per evitare offset fuso orario
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
 function fmtDate(d){if(!d)return'—';return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function ds(d){if(!d)return'';return d instanceof Date?d.toISOString().split('T')[0]:'';}
 
@@ -287,25 +295,43 @@ function showTyping(){
   c.appendChild(d);scrollChat();
 }
 function removeTyping(){var t=document.getElementById('tdot');if(t)t.remove();}
+function getApiKey(){
+  var k = localStorage.getItem('bnb_apikey');
+  if(!k){
+    k = prompt('Inserisci la tua API key Anthropic (da console.anthropic.com):\n\nViene salvata solo sul tuo dispositivo.');
+    if(k) localStorage.setItem('bnb_apikey', k.trim());
+  }
+  return k ? k.trim() : null;
+}
+
 function sendMsg(){
   if(!bookings.length){addMsg('ai','Prima sincronizza i dati.');return;}
   var inp=document.getElementById('chat-input'),text=inp.value.trim();
   if(!text)return;
+  var apiKey = getApiKey();
+  if(!apiKey){addMsg('ai','API key non inserita. Riprova e inserisci la chiave.');return;}
   inp.value='';inp.blur();
   addMsg('user',text);
   chatHistory.push({role:'user',content:text});
   showTyping();
   var sys='Sei un assistente esperto per un B&B italiano. Rispondi in italiano, conciso e pratico. Date: gg/mm/aaaa. Importi con €.\n\n'+buildCtx();
   fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',headers:{'Content-Type':'application/json'},
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:chatHistory.slice(-12)})
   }).then(function(r){return r.json();}).then(function(data){
     removeTyping();
+    if(data.error){
+      addMsg('ai','Errore API: '+data.error.message+'. Controlla la chiave in Impostazioni.');
+      if(data.error.type==='authentication_error') localStorage.removeItem('bnb_apikey');
+      return;
+    }
     var reply=data.content&&data.content[0]?data.content[0].text:'Nessuna risposta.';
     addMsg('ai',reply);chatHistory.push({role:'assistant',content:reply});
-  }).catch(function(){removeTyping();addMsg('ai','Errore di connessione.');});
+  }).catch(function(e){removeTyping();addMsg('ai','Errore di connessione: '+e.message);});
 }
 function askQ(q){document.getElementById('chat-input').value=q;showTab('chat');sendMsg();}
+function resetApiKey(){localStorage.removeItem('bnb_apikey');addMsg('ai','API key rimossa. Alla prossima domanda ti verrà chiesta di nuovo.');}
 
 // ─── REPORTS ─────────────────────────────────────────────
 function openReport(type){
