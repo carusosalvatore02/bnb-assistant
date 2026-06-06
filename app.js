@@ -36,6 +36,15 @@ function bindEvents() {
   document.getElementById('rmodal-print').addEventListener('click', printReport);
   document.getElementById('rmodal-body').addEventListener('click', function(e) {
     if (e.target.classList.contains('cb')) e.target.classList.toggle('checked');
+    // Gestione badge pagamento (data-toggle-pag)
+    var pag = e.target.closest ? e.target.closest('[data-toggle-pag]') : null;
+    if(!pag && e.target.dataset && e.target.dataset.togglePag) pag = e.target;
+    if(pag) togglePagamento(pag.getAttribute('data-toggle-pag'));
+  });
+  document.getElementById('rmodal-body').addEventListener('focusout', function(e) {
+    // Salva note quando textarea perde focus (data-save-note)
+    var el = e.target;
+    if(el && el.dataset && el.dataset.saveNote) saveNote(el.dataset.saveNote, el.value);
   });
   document.getElementById('input-row').style.display = 'none';
   var cancelBtn = document.getElementById('file-panel-cancel');
@@ -358,12 +367,12 @@ function togglePagamento(codice){
   });
 }
 
-function saveNote(codice){
-  var ta = document.getElementById('note-'+codice);
-  if(!ta) return;
+function saveNote(codice, valore){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
   if(!notes[codice]) notes[codice] = {};
-  notes[codice].note = ta.value;
+  // Accetta valore diretto o lo legge dal DOM
+  var val = valore !== undefined ? valore : (document.getElementById('note-'+codice)||{}).value || '';
+  notes[codice].note = val;
   localStorage.setItem('bnb_notes', JSON.stringify(notes));
 }
 
@@ -474,7 +483,7 @@ function reportReception(today,todayStr,label){
       '<div class="rec-header">' +
         '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
         getCanaleLabel(b) +
-        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'" style="cursor:pointer" onclick="togglePagamento(''+b.codice+'')" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
+        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'" style="cursor:pointer" data-toggle-pag="'+b.codice+'" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
       '</div>' +
       '<div class="rec-grid">' +
         '<div class="rec-item"><span class="rec-lbl">Check-in</span><span class="rec-val">'+fmtDate(b.checkin)+'</span></div>' +
@@ -487,7 +496,7 @@ function reportReception(today,todayStr,label){
         '<div class="rec-item"><span class="rec-lbl">Tassa soggiorno</span><span class="rec-val">'+(pagato?'<span style="color:var(--text2)">Scorporata da Booking</span>':'€'+tassa+(hasBimbi?' <small style="color:var(--text2)">(verificare età bambini)</small>':''))+'</span></div>' +
       '</div>' +
       '<div class="rec-note-wrap">' +
-        '<textarea class="rec-note" id="note-'+b.codice+'" placeholder="Note ospite (allergie, preferenze, richieste…)" onblur="saveNote(''+b.codice+'')" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;resize:none;min-height:52px;font-family:inherit">'+noteText+'</textarea>' +
+        '<textarea class="rec-note" id="note-'+b.codice+'" placeholder="Note ospite (allergie, preferenze, richieste…)" data-save-note="'+b.codice+'" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;resize:none;min-height:52px;font-family:inherit">'+noteText+'</textarea>' +
       '</div>' +
     '</div>';
   }
@@ -500,7 +509,7 @@ function reportReception(today,todayStr,label){
       '<div class="rec-header">' +
         '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
         '<span class="rsbadge b-out">Check-out</span>' +
-        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'" style="cursor:pointer" onclick="togglePagamento(''+b.codice+'')" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
+        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'" style="cursor:pointer" data-toggle-pag="'+b.codice+'" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
       '</div>' +
       '<div class="rec-grid">' +
         '<div class="rec-item"><span class="rec-lbl">Camera</span><span class="rec-val">'+b.camera+'</span></div>' +
