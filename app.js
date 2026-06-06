@@ -88,9 +88,7 @@ function loadFromStorage() {
 
 // ─── SYNC ────────────────────────────────────────────────
 function doSync() {
-  // Apre il gestionale in una nuova tab per scaricare l'Excel
-  window.open('https://www.bed-and-breakfast.it/ar/prenotazioni.cfm', '_blank');
-  // Mostra il pannello di caricamento file
+  // Mostra il pannello — il link al gestionale è dentro il pannello stesso
   showFilePanel();
 }
 
