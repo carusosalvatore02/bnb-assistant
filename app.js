@@ -311,7 +311,7 @@ function removeTyping(){var t=document.getElementById('tdot');if(t)t.remove();}
 function getApiKey(){
   var k = localStorage.getItem('bnb_apikey');
   if(!k){
-    k = prompt('Inserisci la tua API key Anthropic (da console.anthropic.com):\n\nViene salvata solo sul tuo dispositivo.');
+    k = prompt('Inserisci la tua API key Groq (GRATUITA):\n\n1. Vai su console.groq.com\n2. Registrati gratis\n3. Crea una API Key\n4. Incollala qui\n\nViene salvata solo sul tuo dispositivo.');
     if(k) localStorage.setItem('bnb_apikey', k.trim());
   }
   return k ? k.trim() : null;
@@ -328,18 +328,20 @@ function sendMsg(){
   chatHistory.push({role:'user',content:text});
   showTyping();
   var sys='Sei un assistente esperto per un B&B italiano. Rispondi in italiano, conciso e pratico. Date: gg/mm/aaaa. Importi con €.\n\n'+buildCtx();
-  fetch('https://api.anthropic.com/v1/messages',{
+  // Usa Groq API (gratuita)
+  var msgs = [{role:'system',content:sys}].concat(chatHistory.slice(-12));
+  fetch('https://api.groq.com/openai/v1/chat/completions',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:sys,messages:chatHistory.slice(-12)})
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
+    body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:1000,messages:msgs})
   }).then(function(r){return r.json();}).then(function(data){
     removeTyping();
     if(data.error){
-      addMsg('ai','Errore API: '+data.error.message+'. Controlla la chiave in Impostazioni.');
-      if(data.error.type==='authentication_error') localStorage.removeItem('bnb_apikey');
+      addMsg('ai','Errore API: '+data.error.message);
+      if(data.error.code==='invalid_api_key'||data.error.code==='401') localStorage.removeItem('bnb_apikey');
       return;
     }
-    var reply=data.content&&data.content[0]?data.content[0].text:'Nessuna risposta.';
+    var reply=data.choices&&data.choices[0]?data.choices[0].message.content:'Nessuna risposta.';
     addMsg('ai',reply);chatHistory.push({role:'assistant',content:reply});
   }).catch(function(e){removeTyping();addMsg('ai','Errore di connessione: '+e.message);});
 }
