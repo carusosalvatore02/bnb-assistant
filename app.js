@@ -1,4 +1,13 @@
 const EPOCH = new Date(1899, 11, 30);
+
+// Parsa una stringa data (YYYY-MM-DD o ISO) come data locale senza offset UTC
+function parseLocalDate(s) {
+  if(!s) return null;
+  // Se è YYYY-MM-DD (nostro formato salvato)
+  var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+  return null;
+}
 let bookings = [];
 let chatHistory = [];
 
@@ -52,8 +61,8 @@ function loadFromStorage() {
       if (parsed && parsed.length) {
         bookings = parsed.map(function(b) {
           return Object.assign({}, b, {
-            checkin: b.checkin ? new Date(b.checkin) : null,
-            checkout: b.checkout ? new Date(b.checkout) : null
+            checkin: b.checkin ? parseLocalDate(b.checkin) : null,
+            checkout: b.checkout ? parseLocalDate(b.checkout) : null
           });
         });
         var d = new Date(ls);
@@ -200,7 +209,7 @@ function processData(rows) {
   });
   var now = new Date().toISOString();
   saveToStorage(bookings.map(function(b){
-    return Object.assign({},b,{checkin:b.checkin?b.checkin.toISOString():null,checkout:b.checkout?b.checkout.toISOString():null});
+    return Object.assign({},b,{checkin:b.checkin?ds(b.checkin):null,checkout:b.checkout?ds(b.checkout):null});
   }), now);
   var d = new Date(now);
   setStatus('ok','Aggiornato alle ' + d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));
@@ -217,8 +226,12 @@ function excelDate(n){
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 function fmtDate(d){if(!d)return'—';return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}
-function ds(d){if(!d)return'';return d instanceof Date?d.toISOString().split('T')[0]:'';}
-
+function ds(d){
+  if(!d||!(d instanceof Date))return'';
+  // Usa ora LOCALE (non UTC) per evitare offset fuso orario
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 // ─── UI ──────────────────────────────────────────────────
 function showOnboarding(){
   document.getElementById('onboarding').style.display='flex';
