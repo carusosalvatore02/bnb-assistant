@@ -160,6 +160,11 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
 .cb.checked::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
 .cblabel{font-size:14px;flex:1}.cbdetail{font-size:11px;color:var(--text2)}
 .nodata{font-size:13px;color:var(--text3);text-align:center;padding:24px 0}
+.dotaz{font-size:11px;margin-top:5px;padding:6px 8px;background:var(--bg3);border-radius:6px;color:var(--text2)}
+.dotaz-items{font-size:11px;color:var(--text3)}
+.totali{background:var(--accent-l);border:0.5px solid var(--accent);border-radius:var(--r-sm);padding:12px;margin-top:12px}
+.totali h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--accent-d)}
+.tot-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--text)}
 
 /* RECEPTION */
 .rec-card{background:var(--bg2);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;border:0.5px solid var(--border)}
@@ -272,6 +277,7 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
         <div class="rcard" data-report="reception"><div class="ricon ri-a">💳</div><div class="rinfo"><div class="rtitle">Reception</div><div class="rdesc">Chi paga oggi e quanto</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="camere"><div class="ricon ri-b">🛏️</div><div class="rinfo"><div class="rtitle">Report Camere</div><div class="rdesc">Stato camere e pulizie — prossimi 7 giorni</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="settimanale"><div class="ricon ri-p">📊</div><div class="rinfo"><div class="rtitle">Riepilogo settimanale</div><div class="rdesc">Incassi, occupazione, statistiche</div></div><span class="rarrow">›</span></div>
+        <div class="rcard" data-report="fabiola"><div class="ricon ri-g">📋</div><div class="rinfo"><div class="rtitle">Report Fabiola</div><div class="rdesc">Reception + Colazioni + Camere tutto in uno</div></div><span class="rarrow">›</span></div>
       </div>
     </div>
   </div>
@@ -287,7 +293,10 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
   <div id="rmodal-hdr">
     <button id="rmodal-back">‹</button>
     <span id="rmodal-title"></span>
-    <button id="rmodal-print">Stampa</button>
+    <div style="display:flex;gap:6px">
+      <button id="rmodal-share" style="background:#25D366;color:#fff;border:none;border-radius:20px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit">📤 Condividi</button>
+      <button id="rmodal-print">Stampa</button>
+    </div>
   </div>
   <div id="rmodal-body"></div>
 </div>
