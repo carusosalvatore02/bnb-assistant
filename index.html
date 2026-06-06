@@ -182,21 +182,20 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
 <!-- ONBOARDING (visibile solo al primo avvio o se non loggato) -->
 <div id="onboarding" style="display:none">
   <div class="ob-title">Benvenuto 👋</div>
-  <div class="ob-sub">Per sincronizzare automaticamente le prenotazioni, segui questi passi:</div>
+  <div class="ob-sub">Premi <strong>Sincronizza</strong> per caricare le prenotazioni. Il tasto apre il gestionale e ti guida al caricamento del file.</div>
   <div class="ob-step">
     <div class="ob-num">1</div>
-    <div class="ob-text">Apri il gestionale e <strong>fai login</strong> con le tue credenziali</div>
+    <div class="ob-text">Premi <strong>Sincronizza</strong> — si apre il gestionale</div>
   </div>
   <div class="ob-step">
     <div class="ob-num">2</div>
-    <div class="ob-text">Vai su <strong>Prenotazioni → Esporta in Excel</strong> e scarica il file</div>
+    <div class="ob-text">Clicca <strong>"Esporta in Excel"</strong> e scarica il file</div>
   </div>
   <div class="ob-step">
     <div class="ob-num">3</div>
-    <div class="ob-text">Torna qui e premi <strong>Sincronizza</strong> — l'app scaricherà i dati direttamente</div>
+    <div class="ob-text">Torna qui e <strong>seleziona il file scaricato</strong></div>
   </div>
-  <a href="https://www.bed-and-breakfast.it/ar/prenotazioni.cfm" target="_blank" class="ob-link">Apri il gestionale →</a>
-  <div class="ob-note">Dopo aver fatto login sul gestionale, torna qui e premi Sincronizza. L'app userà la tua sessione attiva.</div>
+  <div class="ob-note">I dati vengono salvati sul dispositivo — non serve risincronizzare ogni volta, solo quando ci sono nuove prenotazioni.</div>
 </div>
 
 <!-- MAIN APP -->
@@ -265,6 +264,24 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
     <button id="rmodal-print">Stampa</button>
   </div>
   <div id="rmodal-body"></div>
+</div>
+
+<input type="file" id="file-input" accept=".xlsx,.xls" style="display:none">
+
+<!-- PANNELLO CARICAMENTO FILE -->
+<div id="file-panel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px">
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px">Carica il file Excel</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5">
+      Nella pagina del gestionale appena aperta:<br>
+      clicca <strong>"Esporta in Excel"</strong> e scarica il file.<br>
+      Poi selezionalo qui sotto.
+    </div>
+    <label style="display:block;padding:14px;background:var(--accent);color:#fff;border-radius:12px;text-align:center;font-size:15px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent" for="file-input">
+      📂 Seleziona file scaricato
+    </label>
+    <button style="display:block;width:100%;margin-top:12px;padding:12px;background:none;border:0.5px solid var(--border2);border-radius:12px;font-size:14px;color:var(--text2);cursor:pointer;font-family:inherit" id="file-panel-cancel">Annulla</button>
+  </div>
 </div>
 
 <script src="app.js"></script>
