@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Biancheria B&B">
+<meta name="theme-color" content="#1D9E75">
+<title>Biancheria B&B</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#1D9E75;--accent-l:#E1F5EE;--accent-d:#0F6E56;
+  --amber:#f59e0b;--amber-l:#fef3c7;--amber-d:#92400e;
+  --coral:#dc2626;--coral-l:#fee2e2;
+  --bg:#fff;--bg2:#f5f5f2;--bg3:#ebebea;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9a9a96;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --r:12px;--r-sm:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}
+body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:480px;margin:0 auto}
+
+/* ── LOGIN ── */
+#login-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:20px}
+.login-logo{width:64px;height:64px;border-radius:16px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:32px}
+.login-title{font-size:22px;font-weight:700;text-align:center}
+.login-sub{font-size:14px;color:var(--text2);text-align:center}
+.user-btn{width:100%;padding:14px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg2);text-align:left;cursor:pointer;font-size:15px;font-family:inherit;display:flex;align-items:center;gap:12px;-webkit-tap-highlight-color:transparent}
+.user-btn:active{background:var(--bg3)}
+.user-icon{width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.user-info{}
+.user-name{font-size:15px;font-weight:600}
+.user-role{font-size:12px;color:var(--text2)}
+
+/* PIN */
+#pin-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;gap:20px}
+.pin-name{font-size:18px;font-weight:600}
+.pin-dots{display:flex;gap:12px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:background .15s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pin-dot.error{background:var(--coral);border-color:var(--coral)}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px}
+.pin-btn{padding:18px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg2);font-size:22px;font-weight:500;cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent;font-family:inherit}
+.pin-btn:active{background:var(--bg3)}
+.pin-cancel{font-size:13px;color:var(--text2);cursor:pointer;padding:8px}
+
+/* ── HEADER ── */
+#header{display:flex;align-items:center;justify-content:space-between;padding:max(env(safe-area-inset-top),12px) 16px 10px;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg)}
+#header-left{display:flex;align-items:center;gap:10px}
+#header-logo{font-size:22px}
+#header-title{font-size:15px;font-weight:600}
+#header-role{font-size:11px;color:var(--text2)}
+#logout-btn{font-size:12px;color:var(--text2);cursor:pointer;padding:6px 10px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg);font-family:inherit}
+
+/* ── TABS ── */
+#tabs{display:flex;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg)}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ── SCROLL ── */
+#scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ── CARDS ── */
+.cam-card{margin:12px 14px 0;border-radius:var(--r);border:0.5px solid var(--border);overflow:hidden}
+.cam-header{padding:12px 14px;background:var(--bg2);display:flex;align-items:center;gap:10px}
+.cam-name{font-size:15px;font-weight:700;flex:1}
+.tipo-badge{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600}
+.tipo-totale{background:#fef3c7;color:#92400e}
+.tipo-bagno{background:#dbeafe;color:#1e40af}
+.tipo-letto{background:#ede9fe;color:#5b21b6}
+.tipo-riassetto{background:var(--bg3);color:var(--text2)}
+.cam-ospite{font-size:12px;color:var(--text2)}
+.cam-body{padding:14px}
+.dotaz-section{margin-bottom:12px}
+.dotaz-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.dotaz-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.dotaz-row:last-child{border-bottom:none}
+.dotaz-item{font-size:13px}
+.dotaz-qty{display:flex;align-items:center;gap:8px}
+.qty-btn{width:28px;height:28px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;font-family:inherit}
+.qty-btn:active{background:var(--bg3)}
+.qty-val{font-size:16px;font-weight:600;min-width:24px;text-align:center}
+.qty-teorico{font-size:11px;color:var(--text3)}
+.anomalia-section{margin-top:10px;padding:10px;background:var(--amber-l);border-radius:var(--r-sm);display:none}
+.anomalia-label{font-size:12px;font-weight:600;color:var(--amber-d);margin-bottom:6px}
+.anomalia-select{width:100%;padding:8px 10px;border-radius:var(--r-sm);border:0.5px solid var(--amber-d);background:var(--bg);font-size:13px;font-family:inherit;color:var(--text)}
+.foto-btn{margin-top:8px;display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--amber-d);color:#fff;border:none;border-radius:var(--r-sm);cursor:pointer;font-size:13px;font-family:inherit;width:100%;-webkit-tap-highlight-color:transparent}
+.foto-preview{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.foto-thumb{width:60px;height:60px;border-radius:6px;object-fit:cover}
+.confirm-btn{width:100%;margin-top:14px;padding:13px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent}
+.confirm-btn:active{opacity:.85}
+.confirm-btn:disabled{background:var(--bg3);color:var(--text3)}
+.confirm-btn.confirmed{background:var(--accent-d)}
+.note-input{width:100%;padding:8px 10px;border-radius:var(--r-sm);border:0.5px solid var(--border2);background:var(--bg2);font-size:13px;font-family:inherit;color:var(--text);resize:none;min-height:60px;margin-top:10px}
+.admin-section{padding:14px}
+.admin-card{background:var(--bg2);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.admin-card h3{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--accent-d)}
+.form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.form-label{font-size:12px;color:var(--text2);font-weight:500}
+.form-input{padding:9px 12px;border-radius:var(--r-sm);border:0.5px solid var(--border2);background:var(--bg);font-size:14px;font-family:inherit;color:var(--text);outline:none}
+.form-input:focus{border-color:var(--accent)}
+.btn-primary{padding:11px 20px;border-radius:var(--r-sm);border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;width:100%}
+.btn-danger{padding:11px 20px;border-radius:var(--r-sm);border:none;background:var(--coral);color:#fff;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.stock-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.stock-row:last-child{border-bottom:none}
+.stock-item{font-size:14px;font-weight:500}
+.stock-qty{font-size:18px;font-weight:700;color:var(--accent-d)}
+.stock-actions{display:flex;align-items:center;gap:8px}
+.log-entry{padding:8px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+.log-entry:last-child{border-bottom:none}
+.log-date{color:var(--text2);font-size:11px}
+.log-anomalia{color:var(--coral);font-weight:600}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">🧻</div>
+  <div>
+    <div class="login-title">Biancheria B&B</div>
+    <div class="login-sub">Seleziona il tuo profilo</div>
+  </div>
+  <div id="user-list" style="width:100%;display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- PIN -->
+<div id="pin-screen" style="display:none">
+  <div class="pin-name" id="pin-user-name"></div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+    <div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div class="pin-grid" id="pin-grid"></div>
+  <div class="pin-cancel" id="pin-cancel">← Torna indietro</div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+  <div id="header">
+    <div id="header-left">
+      <div id="header-logo">🧻</div>
+      <div><div id="header-title">Biancheria B&B</div><div id="header-role"></div></div>
+    </div>
+    <button id="logout-btn">Esci</button>
+  </div>
+  <div id="tabs">
+    <div class="tab active" data-tab="oggi">Oggi</div>
+    <div class="tab" data-tab="report" id="tab-report">Report</div>
+    <div class="tab" data-tab="magazzino" id="tab-magazzino">Magazzino</div>
+    <div class="tab" data-tab="admin" id="tab-admin" style="display:none">Admin</div>
+  </div>
+  <div id="scroll-area">
+    <div id="tab-oggi" class="tab-content active"><div id="checklist-container" style="padding-bottom:20px"></div></div>
+    <div id="tab-report" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-card"><h3>📊 Consumo giornaliero</h3><div id="report-daily"></div></div>
+        <div class="admin-card"><h3>⚠ Anomalie registrate</h3><div id="report-anomalie"></div></div>
+        <div class="admin-card" id="report-riordino-card" style="display:none"><h3>📦 Stima riordino lavanderia</h3><div id="report-riordino"></div><button class="btn-primary" id="btn-export-report" style="margin-top:10px">📤 Esporta report</button></div>
+      </div>
+    </div>
+    <div id="tab-magazzino" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-card"><h3>📦 Giacenze attuali</h3><div id="stock-list"></div></div>
+        <div class="admin-card" id="add-lavanderia-card" style="display:none"><h3>➕ Registra arrivo da lavanderia</h3><div id="lavanderia-form"></div></div>
+      </div>
+    </div>
+    <div id="tab-admin" class="tab-content">
+      <div class="admin-section">
+        <div class="admin-card">
+          <h3>👥 Gestione utenti</h3><div id="users-list"></div>
+          <div style="margin-top:12px">
+            <div class="form-row"><label class="form-label">Nome utente</label><input class="form-input" id="new-user-name" placeholder="es. Maria"></div>
+            <div class="form-row"><label class="form-label">PIN (4 cifre)</label><input class="form-input" id="new-user-pin" type="password" maxlength="4" placeholder="••••"></div>
+            <div class="form-row"><label class="form-label">Ruolo</label>
+              <select class="form-input" id="new-user-role"><option value="staff">Staff pulizie</option><option value="admin">Admin</option></select></div>
+            <button class="btn-primary" id="btn-add-user">Aggiungi utente</button>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h3>🏠 Camere</h3><div id="rooms-list"></div>
+          <div style="margin-top:12px">
+            <div class="form-row"><label class="form-label">Nome camera</label><input class="form-input" id="new-room-name" placeholder="es. 1.Porta Carini"></div>
+            <button class="btn-primary" id="btn-add-room">Aggiungi camera</button>
