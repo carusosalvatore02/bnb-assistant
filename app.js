@@ -966,23 +966,38 @@ function reportPulizie(today,todayStr,label){
 }
 function reportReception(today,todayStr,label){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
-  var cis = bookings.filter(function(b){return ds(b.checkin)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
-  var cos = bookings.filter(function(b){return ds(b.checkout)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
-  // Tutti gli ospiti del giorno (arrivi + partenze, senza duplicati)
-  var tuttiCodici = {};
-  cis.forEach(function(b){ tuttiCodici[b.codice] = b; });
-  cos.forEach(function(b){ tuttiCodici[b.codice] = b; });
-  var tutti = Object.values(tuttiCodici);
 
+  // 1. Arrivi di oggi
+  var cis = bookings.filter(function(b){
+    return ds(b.checkin)===todayStr && (b.stato==='Attiva'||b.stato==='Modificata');
+  });
+
+  // 2. Partenze di oggi
+  var cos = bookings.filter(function(b){
+    return ds(b.checkout)===todayStr && (b.stato==='Attiva'||b.stato==='Modificata');
+  });
+
+  // 3. Ospiti in casa (checkin < oggi, checkout > oggi — già presenti, non partono oggi)
+  var inCasa = bookings.filter(function(b){
+    return b.checkin < today && b.checkout > today &&
+           ds(b.checkin) !== todayStr &&
+           (b.stato==='Attiva'||b.stato==='Modificata');
+  });
+
+  // Tutti per il totale (arrivi + in casa + partenze, senza duplicati)
+  var tuttiMap = {};
+  cis.forEach(function(b){ tuttiMap[b.codice]=b; });
+  cos.forEach(function(b){ tuttiMap[b.codice]=b; });
+  inCasa.forEach(function(b){ tuttiMap[b.codice]=b; });
+  var tutti = Object.values(tuttiMap);
+
+  // ── Card arrivo (check-in oggi) ───────────────────────────────────────
   function rowArrivo(b){
-    var notti = getNotti(b);
-    var tassa = calcTassa(b);
-    var nd = notes[b.codice]||{};
-    var pagamentoOk = nd.pagamentoOk||false;
-    var noteText = nd.note||'';
-    var hasBimbi = b.bambini > 0;
-    var quotaStr = '<span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+b.importo+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span>';
-    var tassaStr = '<span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+tassa+(hasBimbi?' <small style="color:var(--text2);font-weight:400">(verificare età bambini)</small>':'')+(pagamentoOk?' — Saldato':' — Da Incassare')+'</span>';
+    var notti=getNotti(b), tassa=calcTassa(b);
+    var nd=notes[b.codice]||{}, pagamentoOk=nd.pagamentoOk||false, noteText=nd.note||'';
+    var hasBimbi=b.bambini>0;
+    var quotaColor = pagamentoOk ? 'var(--accent-d)' : 'var(--coral-d)';
+    var quotaLabel = pagamentoOk ? 'Saldato' : 'Da Incassare';
     return '<div class="rec-card" id="rec-'+b.codice+'">' +
       '<div class="rec-header">' +
         '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
@@ -996,19 +1011,49 @@ function reportReception(today,todayStr,label){
         '<div class="rec-item"><span class="rec-lbl">Camera</span><span class="rec-val">'+b.camera+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Bambini</span><span class="rec-val">'+(b.bambini||0)+'</span></div>' +
-        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span><div class="rec-val">'+quotaStr+'</div></div>' +
-        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span><div class="rec-val">'+tassaStr+'</div></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span>' +
+          '<div class="rec-val"><span style="color:'+quotaColor+';font-weight:600">€'+b.importo+' — '+quotaLabel+'</span></div></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span>' +
+          '<div class="rec-val"><span style="color:'+quotaColor+';font-weight:600">€'+tassa+(hasBimbi?' <small style="color:var(--text2);font-weight:400">(verif. età bambini)</small>':'')+' — '+quotaLabel+'</span></div></div>' +
       '</div>' +
       '<textarea class="rec-note" data-save-note="'+b.codice+'" placeholder="Note ospite…" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);font-size:12px;resize:none;min-height:44px;font-family:inherit;'+(noteText.trim()?'font-weight:700;color:#dc2626':'color:var(--text)')+'">'+noteText+'</textarea>' +
     '</div>';
   }
 
+  // ── Card ospite in casa (soggiorno in corso) ──────────────────────────
+  function rowInCasa(b){
+    var notti=getNotti(b), tassa=calcTassa(b);
+    var nd=notes[b.codice]||{}, pagamentoOk=nd.pagamentoOk||false, noteText=nd.note||'';
+    var giornoAttuale = Math.round((today - b.checkin)/86400000);
+    var quotaColor = pagamentoOk ? 'var(--accent-d)' : 'var(--coral-d)';
+    var quotaLabel = pagamentoOk ? 'Saldato' : 'Da Verificare';
+    return '<div class="rec-card" id="rec-'+b.codice+'" style="border-left:3px solid var(--accent)">' +
+      '<div class="rec-header">' +
+        '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
+        '<span class="rsbadge b-dir" style="font-size:10px">Notte '+giornoAttuale+'/'+notti+'</span>' +
+        getCanaleLabel(b) +
+        '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+' pagamento-badge" style="cursor:pointer" data-toggle-pag="'+b.codice+'" id="badge-pag-'+b.codice+'">'+(pagamentoOk?'✓ Regolare':'⚠ Da regolarizzare')+'</span>' +
+      '</div>' +
+      '<div class="rec-grid">' +
+        '<div class="rec-item"><span class="rec-lbl">Camera</span><span class="rec-val">'+b.camera+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Partenza</span><span class="rec-val">'+fmtDate(b.checkout)+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
+        '<div class="rec-item"><span class="rec-lbl">Notti tot.</span><span class="rec-val">'+notti+'</span></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Stato pagamento</span>' +
+          '<div class="rec-val"><span style="color:'+quotaColor+';font-weight:600">€'+b.importo+' (+€'+tassa+' tassa) — '+quotaLabel+'</span></div></div>' +
+      '</div>' +
+      (noteText ? '<div style="font-size:12px;font-weight:700;color:#dc2626;padding:6px 8px;background:var(--bg3);border-radius:6px;margin-top:4px">📝 '+noteText+'</div>' : '') +
+      '<textarea class="rec-note" data-save-note="'+b.codice+'" placeholder="Note ospite…" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);font-size:12px;resize:none;min-height:36px;font-family:inherit;margin-top:6px;'+(noteText.trim()?'font-weight:700;color:#dc2626':'color:var(--text)')+'">'+noteText+'</textarea>' +
+    '</div>';
+  }
+
+  // ── Card partenza (check-out oggi) ────────────────────────────────────
   function rowPartenza(b){
-    var nd = notes[b.codice]||{};
-    var pagamentoOk = nd.pagamentoOk||false;
-    var notti = getNotti(b);
-    var tassa = calcTassa(b);
-    return '<div class="rec-card checkout-card">' +
+    var notti=getNotti(b), tassa=calcTassa(b);
+    var nd=notes[b.codice]||{}, pagamentoOk=nd.pagamentoOk||false;
+    var quotaColor = pagamentoOk ? 'var(--accent-d)' : 'var(--coral-d)';
+    var quotaLabel = pagamentoOk ? 'Saldato' : 'Da Saldare';
+    return '<div class="rec-card checkout-card" id="rec-'+b.codice+'">' +
       '<div class="rec-header">' +
         '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
         '<span class="rsbadge b-out">Check-out</span>' +
@@ -1020,34 +1065,41 @@ function reportReception(today,todayStr,label){
         '<div class="rec-item"><span class="rec-lbl">Notti</span><span class="rec-val">'+notti+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Canale</span><span class="rec-val">'+getCanale(b)+'</span></div>' +
-        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span><div class="rec-val"><span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+b.importo+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span></div></div>' +
-        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span><div class="rec-val"><span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+tassa+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span></div></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span>' +
+          '<div class="rec-val"><span style="color:'+quotaColor+';font-weight:600">€'+b.importo+' — '+quotaLabel+'</span></div></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span>' +
+          '<div class="rec-val"><span style="color:'+quotaColor+';font-weight:600">€'+tassa+' — '+quotaLabel+'</span></div></div>' +
       '</div></div>';
   }
 
   var html = '<div class="rdate">'+label+'</div>';
-  html += cis.length ? '<div class="rstitle" style="margin-bottom:10px">🟢 Arrivi ('+cis.length+')</div>' + cis.map(rowArrivo).join('') : '<div class="nodata" style="margin-bottom:12px">Nessun arrivo oggi</div>';
-  html += cos.length ? '<div class="rstitle" style="margin:14px 0 10px">🔴 Partenze ('+cos.length+')</div>' + cos.map(rowPartenza).join('') : '<div class="nodata">Nessuna partenza oggi</div>';
 
-  // Box totali con ID per aggiornamento in tempo reale
+  // Sezione arrivi
+  if(cis.length){
+    html += '<div class="rstitle" style="margin-bottom:10px">🟢 Arrivi oggi ('+cis.length+')</div>';
+    html += cis.map(rowArrivo).join('');
+  } else {
+    html += '<div class="nodata" style="margin-bottom:12px">Nessun arrivo oggi</div>';
+  }
+
+  // Sezione ospiti in casa
+  if(inCasa.length){
+    html += '<div class="rstitle" style="margin:14px 0 10px">🏠 Ospiti in casa ('+inCasa.length+')</div>';
+    // Ordina per data checkout (chi parte prima in cima)
+    inCasa.sort(function(a,b){ return a.checkout - b.checkout; });
+    html += inCasa.map(rowInCasa).join('');
+  }
+
+  // Sezione partenze
+  if(cos.length){
+    html += '<div class="rstitle" style="margin:14px 0 10px">🔴 Partenze oggi ('+cos.length+')</div>';
+    html += cos.map(rowPartenza).join('');
+  } else {
+    html += '<div class="nodata" style="margin-bottom:12px">Nessuna partenza oggi</div>';
+  }
+
   html += renderTotaliReception(tutti, notes);
   return html;
-}
-
-function renderTotaliReception(tutti, notes){
-  // Ricalcola ogni volta — include arrivi E partenze non saldati
-  var da_incassare = tutti.filter(function(b){ return !(notes[b.codice]||{}).pagamentoOk; });
-  var saldati      = tutti.filter(function(b){  return  (notes[b.codice]||{}).pagamentoOk; });
-  var totIncasso   = da_incassare.reduce(function(s,b){ return s+b.importo; }, 0);
-  var totTasse     = da_incassare.reduce(function(s,b){ return s+calcTassa(b); }, 0);
-  return '<div class="totali" id="totali-reception" style="margin-top:14px">' +
-    '<h3>Totali reception oggi</h3>' +
-    (saldati.length ? '<div class="tot-row" style="color:var(--accent-d)"><span>✓ Ospiti saldati</span><span>'+saldati.length+'</span></div>' : '') +
-    '<div class="tot-row"><span>Ospiti da regolarizzare</span><span>'+da_incassare.length+'</span></div>' +
-    '<div class="tot-row"><span>Quota soggiorni</span><span>€'+totIncasso.toFixed(2)+'</span></div>' +
-    '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+totTasse.toFixed(2)+'</span></div>' +
-    '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span style="color:var(--coral-d)">€'+(totIncasso+totTasse).toFixed(2)+'</span></div>' +
-  '</div>';
 }
 
 function reportCamere(today,todayStr,label){
