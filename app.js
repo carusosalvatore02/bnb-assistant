@@ -642,7 +642,7 @@ function openReport(type){
   modal.classList.add('open');
   var today=new Date();today.setHours(0,0,0,0);
   var todayStr=ds(today),label=today.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  var map={colazione:['Colazioni',reportColazione],pulizie:['Pulizie',reportPulizie],reception:['Reception',reportReception],camere:['Report Camere',reportCamere],settimanale:['Riepilogo settimanale',reportSettimanale],fabiola:['Report Fabiola',reportFabiola]};
+  var map={colazione:['Colazioni',reportColazione],reception:['Reception',reportReception],camere:['Report Camere',reportCamere],settimanale:['Riepilogo settimanale',reportSettimanale],fabiola:['Report Fabiola',reportFabiola]};
   if(map[type]){title.textContent=map[type][0];body.innerHTML=map[type][1](today,todayStr,label);}
 }
 function closeReport(){document.getElementById('rmodal').classList.remove('open');}
@@ -1013,7 +1013,6 @@ function reportReception(today,todayStr,label){
 function reportCamere(today,todayStr,label){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
 
-  // Leggi data di partenza dal selettore (se presente)
   var startSel = document.getElementById('cam-start-date');
   var startDay = today;
   if(startSel && startSel.value){
@@ -1028,7 +1027,7 @@ function reportCamere(today,todayStr,label){
     days.push(d);
   }
 
-  var totFermata = 0, totPartenza = 0, totArrivo = 0;
+  var totFermata=0, totPartenza=0, totArrivo=0;
   var incassoLordo=0, incassoComm=0, incassoTasse=0;
   var prenotazioniSettimana = new Set();
 
@@ -1037,63 +1036,91 @@ function reportCamere(today,todayStr,label){
   // Selettore data
   html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
     '<label style="font-size:12px;color:var(--text2)">Data inizio:</label>' +
-    '<input type="date" id="cam-start-date" value="'+ds(startDay)+'" style="padding:6px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;outline:none" ' +
-    'style="padding:6px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px" ' +
-    'onchange="refreshReportCamere()">' +
+    '<input type="date" id="cam-start-date" value="'+ds(startDay)+'" ' +
+    'style="padding:6px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;outline:none">' +
   '</div>';
+
+  // ── SEZIONE CHECK-IN ──────────────────────────────────────────────────
+  var tuttiArrivi = [];
+  days.forEach(function(day){
+    var dayStr = ds(day);
+    var arrivals = bookings.filter(function(b){
+      return (b.stato==='Attiva'||b.stato==='Modificata') && ds(b.checkin)===dayStr;
+    });
+    arrivals.forEach(function(b){ tuttiArrivi.push({b:b, day:day}); totArrivo++; });
+  });
+
+  html += '<div class="rstitle" style="margin-bottom:10px;margin-top:4px">🟢 Check-in settimana ('+tuttiArrivi.length+')</div>';
+  if(tuttiArrivi.length){
+    html += '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
+      '<thead><tr>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Data</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Camera</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Ospite</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:center;border:0.5px solid var(--border);font-size:11px">Ospiti</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">CO</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Canale</th>' +
+      '</tr></thead><tbody>';
+    tuttiArrivi.forEach(function(item){
+      var b=item.b, nd=notes[b.codice]||{};
+      var pagOk = nd.pagamentoOk;
+      html += '<tr style="background:rgba(29,158,117,.04)">' +
+        '<td style="padding:6px 8px;border:0.5px solid var(--border);font-size:12px;font-weight:600">'+
+          item.day.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})+'</td>' +
+        '<td style="padding:6px 8px;border:0.5px solid var(--border);font-size:12px;font-weight:600">'+b.camera+'</td>' +
+        '<td style="padding:6px 8px;border:0.5px solid var(--border);font-size:12px">'+b.cognome+' '+b.nome+'</td>' +
+        '<td style="padding:6px 8px;border:0.5px solid var(--border);font-size:12px;text-align:center">'+(b.adulti+(b.bambini||0))+'</td>' +
+        '<td style="padding:6px 8px;border:0.5px solid var(--border);font-size:12px">'+fmtDate(b.checkout)+'</td>' +
+        '<td style="padding:6px 8px;border:0.5px solid var(--border);font-size:11px">'+getCanale(b)+'</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  } else {
+    html += '<div class="nodata" style="margin-bottom:16px">Nessun check-in questa settimana</div>';
+  }
+
+  // ── SEZIONE PULIZIE GIORNALIERE (solo fermata e partenza) ────────────
+  html += '<div class="rstitle" style="margin-bottom:10px">🧹 Pulizie giornaliere</div>';
 
   days.forEach(function(day){
     var dayStr = ds(day);
     var dayLabel = day.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
 
-    var active = bookings.filter(function(b){
+    // Solo fermata e partenza (NO arrivi)
+    var fermata = bookings.filter(function(b){
       return (b.stato==='Attiva'||b.stato==='Modificata') &&
-             b.checkin <= day && b.checkout >= day;
+             b.checkin < day && b.checkout > day;
+    });
+    var partenza = bookings.filter(function(b){
+      return (b.stato==='Attiva'||b.stato==='Modificata') &&
+             ds(b.checkout) === dayStr;
     });
 
-    if(!active.length){
-      html += '<div class="cam-day"><div class="cam-day-hdr">'+dayLabel+'</div>' +
-              '<div class="nodata" style="padding:6px 0;font-size:12px">Nessuna camera occupata</div></div>';
-      return;
-    }
+    // Aggiorna contatori e incassi (una volta per prenotazione)
+    partenza.forEach(function(b){ totPartenza++; });
+    fermata.forEach(function(b){ totFermata++; });
 
-    html += '<div class="cam-day"><div class="cam-day-hdr">'+dayLabel+'</div>';
-
-    active.forEach(function(b){
-      var isCheckout = ds(b.checkout) === dayStr;
-      var isCheckin  = ds(b.checkin)  === dayStr;
-      var checkinDay = Math.round((day - b.checkin)/86400000);
-      var notti = getNotti(b);
-      var nd = notes[b.codice]||{};
-      var pagamentoOk = nd.pagamentoOk||false;
-      var noteText = nd.note||'';
-      var ospiti = b.adulti + (b.bambini||0);
-
-      var tipoPulizia, tipoCls;
-      if(isCheckout){ tipoPulizia='🔴 In partenza — Pulizia a fondo'; tipoCls='coral'; totPartenza++; }
-      else if(isCheckin){ tipoPulizia='🟢 Arrivo — Rifare tutta la camera 100%'; tipoCls='green'; totArrivo++; }
-      else { tipoPulizia='🔵 In fermata — Riassetto'; tipoCls='blue'; totFermata++; }
-
-      // Incassi settimana (conta ogni prenotazione una volta sola)
-      if(!prenotazioniSettimana.has(b.codice) && (b.checkin >= days[0] && b.checkin < days[days.length-1] || b.checkout > days[0] && b.checkout <= days[days.length-1])){
+    // Incassi settimana
+    var tutteDelGiorno = fermata.concat(partenza);
+    tutteDelGiorno.forEach(function(b){
+      if(!prenotazioniSettimana.has(b.codice)){
         prenotazioniSettimana.add(b.codice);
         incassoLordo  += b.importo;
         incassoComm   += b.commissioni;
         incassoTasse  += calcTassa(b);
       }
+    });
 
-      html += '<div class="cam-row">' +
-        '<div class="cam-row-hdr">' +
-          '<span class="cam-nome">'+b.camera+'</span>' +
-          '<span class="rsbadge b-dir" style="font-size:10px">'+b.cognome+' '+b.nome+'</span>' +
-          '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'">'+(pagamentoOk?'✓':'⚠')+'</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:var(--text2);margin:2px 0">Notte '+(isCheckout?notti:checkinDay+1)+'/'+notti+' · '+getCanale(b)+'</div>' +
-        '<div style="font-size:12px;margin:3px 0"><strong>'+tipoPulizia+'</strong></div>' +
-        '<div style="font-size:11px;color:var(--text2)">👥 '+ospiti+' ospiti ('+b.adulti+' adulti'+(b.bambini?' + '+b.bambini+' bimbi':'')+')</div>' +
-        dotazioniCamera(b, day) +
-        (noteText?'<div style="font-size:12px;font-weight:700;color:#dc2626;margin-top:4px;padding:5px;background:var(--bg3);border-radius:6px">📝 '+noteText+'</div>':'') +
-      '</div>';
+    if(!fermata.length && !partenza.length) return;
+
+    html += '<div class="cam-day"><div class="cam-day-hdr">'+dayLabel+'</div>';
+
+    // Prima le partenze, poi le fermate
+    partenza.forEach(function(b){
+      html += camRow(b, day, 'partenza', notes);
+    });
+    fermata.forEach(function(b){
+      html += camRow(b, day, 'fermata', notes);
     });
 
     html += '</div>';
@@ -1103,9 +1130,9 @@ function reportCamere(today,todayStr,label){
   var incassoNetto = incassoLordo - incassoComm - incassoTasse;
   html += '<div class="totali" style="margin-top:6px">' +
     '<h3>Totali settimana</h3>' +
-    '<div class="tot-row"><span>🔴 Camere in partenza</span><span>'+totPartenza+'</span></div>' +
-    '<div class="tot-row"><span>🔵 Camere in fermata</span><span>'+totFermata+'</span></div>' +
-    '<div class="tot-row"><span>🟢 Camere in arrivo</span><span>'+totArrivo+'</span></div>' +
+    '<div class="tot-row"><span>🟢 Check-in</span><span>'+totArrivo+'</span></div>' +
+    '<div class="tot-row"><span>🔴 Partenze (pulizia a fondo)</span><span>'+totPartenza+'</span></div>' +
+    '<div class="tot-row"><span>🔵 Fermate (riassetto)</span><span>'+totFermata+'</span></div>' +
     '<div class="tot-row" style="margin-top:8px"><span>Incasso lordo</span><span>€'+incassoLordo.toFixed(2)+'</span></div>' +
     '<div class="tot-row"><span>Commissioni</span><span>− €'+incassoComm.toFixed(2)+'</span></div>' +
     '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+incassoTasse.toFixed(2)+'</span></div>' +
@@ -1113,6 +1140,30 @@ function reportCamere(today,todayStr,label){
   '</div>';
 
   return html;
+}
+
+function camRow(b, day, tipo, notes){
+  var isCheckout = tipo === 'partenza';
+  var checkinDay = Math.round((day - b.checkin)/86400000);
+  var notti = getNotti(b);
+  var nd = notes[b.codice]||{};
+  var pagamentoOk = nd.pagamentoOk||false;
+  var noteText = nd.note||'';
+  var ospiti = b.adulti + (b.bambini||0);
+  var tipoPulizia = isCheckout ? '🔴 In partenza — Pulizia a fondo' : '🔵 In fermata — Riassetto';
+
+  return '<div class="cam-row">' +
+    '<div class="cam-row-hdr">' +
+      '<span class="cam-nome">'+b.camera+'</span>' +
+      '<span class="rsbadge b-dir" style="font-size:10px">'+b.cognome+' '+b.nome+'</span>' +
+      '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'">'+(pagamentoOk?'✓':'⚠')+'</span>' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--text2);margin:2px 0">Notte '+(isCheckout?notti:checkinDay+1)+'/'+notti+' · '+getCanale(b)+'</div>' +
+    '<div style="font-size:12px;margin:3px 0"><strong>'+tipoPulizia+'</strong></div>' +
+    '<div style="font-size:11px;color:var(--text2)">👥 '+ospiti+' ('+b.adulti+' ad.'+(b.bambini?' + '+b.bambini+' bim.':'')+')</div>' +
+    dotazioniCamera(b, day) +
+    (noteText?'<div style="font-size:12px;font-weight:700;color:#dc2626;margin-top:4px;padding:5px;background:var(--bg3);border-radius:6px">📝 '+noteText+'</div>':'') +
+  '</div>';
 }
 
 function refreshReportCamere(){
