@@ -604,7 +604,21 @@ function togglePagamento(codice){
     cis.forEach(function(b){ tuttiCodici[b.codice]=b; });
     cos.forEach(function(b){ tuttiCodici[b.codice]=b; });
     var freshNotes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
-    totBox.outerHTML = renderTotaliReception(Object.values(tuttiCodici), freshNotes);
+    // Ricalcola totali inline
+    var _tutti = Object.values(tuttiCodici);
+    var _da_inc = _tutti.filter(function(b){ return !(freshNotes[b.codice]||{}).pagamentoOk; });
+    var _sald = _tutti.filter(function(b){ return (freshNotes[b.codice]||{}).pagamentoOk; });
+    var _totQ = _da_inc.reduce(function(s,b){return s+b.importo;},0);
+    var _totT = _da_inc.reduce(function(s,b){return s+calcTassa(b);},0);
+    var _newHtml = '<div class="totali" id="totali-reception" style="margin-top:14px">' +
+      '<h3>Totali reception oggi</h3>' +
+      (_sald.length ? '<div class="tot-row" style="color:var(--accent-d)"><span>✓ Ospiti saldati</span><span>'+_sald.length+'</span></div>' : '') +
+      '<div class="tot-row"><span>Ospiti da regolarizzare</span><span>'+_da_inc.length+'</span></div>' +
+      '<div class="tot-row"><span>Quota soggiorni</span><span>€'+_totQ.toFixed(2)+'</span></div>' +
+      '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+_totT.toFixed(2)+'</span></div>' +
+      '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span style="color:var(--coral-d)">€'+(_totQ+_totT).toFixed(2)+'</span></div>' +
+    '</div>';
+    totBox.outerHTML = _newHtml;
   }
 
   if(SB.isConfigured()){
@@ -1098,24 +1112,22 @@ function reportReception(today,todayStr,label){
     html += '<div class="nodata" style="margin-bottom:12px">Nessuna partenza oggi</div>';
   }
 
-  html += renderTotaliReception(tutti, notes);
+  // Totali inline (senza dipendenza esterna)
+  var da_inc = tutti.filter(function(b){ return !(notes[b.codice]||{}).pagamentoOk; });
+  var saldati_n = tutti.filter(function(b){ return (notes[b.codice]||{}).pagamentoOk; });
+  var totQ = da_inc.reduce(function(s,b){return s+b.importo;},0);
+  var totT = da_inc.reduce(function(s,b){return s+calcTassa(b);},0);
+  html += '<div class="totali" id="totali-reception" style="margin-top:14px">' +
+    '<h3>Totali reception oggi</h3>' +
+    (saldati_n.length ? '<div class="tot-row" style="color:var(--accent-d)"><span>✓ Ospiti saldati</span><span>'+saldati_n.length+'</span></div>' : '') +
+    '<div class="tot-row"><span>Ospiti da regolarizzare</span><span>'+da_inc.length+'</span></div>' +
+    '<div class="tot-row"><span>Quota soggiorni</span><span>€'+totQ.toFixed(2)+'</span></div>' +
+    '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+totT.toFixed(2)+'</span></div>' +
+    '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span style="color:var(--coral-d)">€'+(totQ+totT).toFixed(2)+'</span></div>' +
+  '</div>';
   return html;
 }
 
-function renderTotaliReception(tutti, notes){
-  var da_incassare = tutti.filter(function(b){ return !(notes[b.codice]||{}).pagamentoOk; });
-  var saldati      = tutti.filter(function(b){  return  (notes[b.codice]||{}).pagamentoOk; });
-  var totIncasso   = da_incassare.reduce(function(s,b){ return s+b.importo; }, 0);
-  var totTasse     = da_incassare.reduce(function(s,b){ return s+calcTassa(b); }, 0);
-  return '<div class="totali" id="totali-reception" style="margin-top:14px">' +
-    '<h3>Totali reception oggi</h3>' +
-    (saldati.length ? '<div class="tot-row" style="color:var(--accent-d)"><span>✓ Ospiti saldati</span><span>'+saldati.length+'</span></div>' : '') +
-    '<div class="tot-row"><span>Ospiti da regolarizzare</span><span>'+da_incassare.length+'</span></div>' +
-    '<div class="tot-row"><span>Quota soggiorni</span><span>€'+totIncasso.toFixed(2)+'</span></div>' +
-    '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+totTasse.toFixed(2)+'</span></div>' +
-    '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span style="color:var(--coral-d)">€'+(totIncasso+totTasse).toFixed(2)+'</span></div>' +
-  '</div>';
-}
 
 function reportCamere(today,todayStr,label){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
