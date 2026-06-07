@@ -112,6 +112,7 @@ function bindEvents() {
   });
   document.getElementById('rmodal-body').addEventListener('change', function(e) {
     if(e.target && e.target.id === 'cam-start-date') refreshReportCamere();
+    if(e.target && e.target.id === 'col-start-date') refreshReportColazione();
   });
   document.getElementById('input-row').style.display = 'none';
   var cancelBtn = document.getElementById('file-panel-cancel');
@@ -927,13 +928,31 @@ function printReport(title, bodyHtml){
 
 function reportColazione(today,todayStr,label){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+
+  // Selettore data
+  var startSel = document.getElementById('col-start-date');
+  var refDay = today;
+  if(startSel && startSel.value){
+    var p = startSel.value.split('-');
+    refDay = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+  }
+  var refStr = ds(refDay);
+  var refLabel = refDay.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Colazione: dal giorno DOPO arrivo fino al giorno checkout incluso
   var presenti = bookings.filter(function(b){
-    // Colazione: dal giorno DOPO l'arrivo (checkin dalle 15, non fanno colazione il giorno stesso)
-    // fino al giorno del checkout INCLUSO (partono dopo colazione)
-    return b.checkin < today && b.checkout >= today &&
+    return b.checkin < refDay && b.checkout >= refDay &&
            (b.stato==='Attiva'||b.stato==='Modificata');
   });
-  if(!presenti.length) return '<div class="rdate">'+label+'</div><div class="nodata">Nessun ospite presente oggi</div>';
+
+  var dateSelector = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+    '<label style="font-size:12px;color:var(--text2)">Data:</label>' +
+    '<input type="date" id="col-start-date" value="'+ds(refDay)+'" ' +
+    'style="padding:6px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;outline:none">' +
+  '</div>';
+
+  if(!presenti.length) return '<div class="rdate">'+refLabel+'</div>' + dateSelector +
+    '<div class="nodata">Nessun ospite a colazione in questa data</div>';
 
   var totAdulti=0, totBimbi=0;
   var rows = presenti.map(function(b){
@@ -952,8 +971,8 @@ function reportColazione(today,todayStr,label){
     '</tr>';
   }).join('');
 
-  var totTavoli = presenti.length;
-  return '<div class="rdate">'+label+'</div>' +
+  return '<div class="rdate">'+refLabel+'</div>' +
+    dateSelector +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:12px">' +
     '<thead><tr>' +
       '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Camera</th>' +
@@ -965,7 +984,7 @@ function reportColazione(today,todayStr,label){
       '<h3>Riepilogo colazioni</h3>' +
       '<div class="tot-row"><span>Camere</span><span>'+presenti.length+'</span></div>' +
       '<div class="tot-row"><span>Adulti / Bambini</span><span>'+totAdulti+' / '+totBimbi+'</span></div>' +
-      '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Tavoli da allestire</span><span>'+totTavoli+' (max 2 pp.)</span></div>' +
+      '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Tavoli da allestire</span><span>'+presenti.length+' (max 2 pp.)</span></div>' +
     '</div>';
 }
 
@@ -1287,6 +1306,13 @@ function camRow(b, day, tipo, notes){
     dotazioniCamera(b, day) +
     (noteText?'<div style="font-size:12px;font-weight:700;color:#dc2626;margin-top:4px;padding:5px;background:var(--bg3);border-radius:6px">📝 '+noteText+'</div>':'') +
   '</div>';
+}
+
+function refreshReportColazione(){
+  var today = new Date(); today.setHours(0,0,0,0);
+  var body = document.getElementById('rmodal-body');
+  if(body) body.innerHTML = reportColazione(today, ds(today),
+    today.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
 }
 
 function refreshReportCamere(){
