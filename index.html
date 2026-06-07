@@ -160,6 +160,10 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
 .cb.checked::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
 .cblabel{font-size:14px;flex:1}.cbdetail{font-size:11px;color:var(--text2)}
 .nodata{font-size:13px;color:var(--text3);text-align:center;padding:24px 0}
+input:invalid{box-shadow:none;outline:none}
+input::-webkit-validation-bubble{display:none}
+input[type=date]::-webkit-inner-spin-button{display:none}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
 .dotaz{font-size:11px;margin-top:5px;padding:6px 8px;background:var(--bg3);border-radius:6px;color:var(--text2)}
 .dotaz-items{font-size:11px;color:var(--text3)}
 .totali{background:var(--accent-l);border:0.5px solid var(--accent);border-radius:var(--r-sm);padding:12px;margin-top:12px}
@@ -201,7 +205,10 @@ body{display:flex;flex-direction:column;overflow:hidden;height:100dvh;max-width:
       <div id="app-sub">—</div>
     </div>
   </div>
-  <button id="sync-btn"><span class="spin">↻</span> Sincronizza</button>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button id="db-btn" title="Configura Database" style="width:34px;height:34px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg);font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent">🗄</button>
+    <button id="sync-btn"><span class="spin">↻</span> Sincronizza</button>
+  </div>
 </div>
 
 <div id="status-bar">

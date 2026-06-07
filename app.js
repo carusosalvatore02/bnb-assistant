@@ -1,3 +1,61 @@
+// ─── CONFIGURAZIONE SUPABASE ──────────────────────────────────────────────
+// Inserisci qui le tue credenziali Supabase (Settings → API)
+var SUPABASE_URL = localStorage.getItem('sb_url') || '';
+var SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+
+// Client Supabase minimale (senza libreria esterna)
+var SB = {
+  headers: function(){
+    return {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Prefer': 'return=representation'
+    };
+  },
+  url: function(table, params){
+    return SUPABASE_URL + '/rest/v1/' + table + (params ? '?' + params : '');
+  },
+  get: async function(table, params){
+    var r = await fetch(SB.url(table, params), { headers: SB.headers() });
+    return r.json();
+  },
+  upsert: async function(table, data){
+    var r = await fetch(SB.url(table), {
+      method: 'POST',
+      headers: Object.assign({}, SB.headers(), {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+      body: JSON.stringify(Array.isArray(data) ? data : [data])
+    });
+    return r;
+  },
+  update: async function(table, match, data){
+    var params = Object.entries(match).map(function(e){ return 'eq.'+e[0]+'=eq.'+e[1]; }).join('&');
+    // Usa la sintassi corretta Supabase: ?colonna=eq.valore
+    var queryParams = Object.entries(match).map(function(e){ return e[0]+'=eq.'+e[1]; }).join('&');
+    var r = await fetch(SB.url(table, queryParams), {
+      method: 'PATCH',
+      headers: SB.headers(),
+      body: JSON.stringify(data)
+    });
+    return r;
+  },
+  isConfigured: function(){
+    return SUPABASE_URL && SUPABASE_KEY && SUPABASE_URL.startsWith('https://');
+  }
+};
+
+function setupSupabase(){
+  var url = prompt('Inserisci il Supabase Project URL\n(es. https://xxxx.supabase.co)\n\nLo trovi in: Settings → API → Project URL');
+  if(!url || !url.startsWith('https://')) return false;
+  var key = prompt('Inserisci la Supabase anon public key\n\nLa trovi in: Settings → API → anon public');
+  if(!key) return false;
+  localStorage.setItem('sb_url', url.trim());
+  localStorage.setItem('sb_key', key.trim());
+  SUPABASE_URL = url.trim();
+  SUPABASE_KEY = key.trim();
+  return true;
+}
+
 const EPOCH = new Date(Date.UTC(1899, 11, 30)); // EPOCH UTC esatta per Excel
 
 // Parsa una stringa data (YYYY-MM-DD o ISO) come data locale senza offset UTC
@@ -57,6 +115,8 @@ function bindEvents() {
   document.getElementById('input-row').style.display = 'none';
   var cancelBtn = document.getElementById('file-panel-cancel');
   if (cancelBtn) cancelBtn.addEventListener('click', hideFilePanel);
+  var dbBtn = document.getElementById('db-btn');
+  if (dbBtn) dbBtn.addEventListener('click', configureDatabase);
   var resetApiBtn = document.getElementById('reset-api-btn');
   if (resetApiBtn) resetApiBtn.addEventListener('click', resetApiKey);
 }
@@ -70,6 +130,12 @@ function saveToStorage(data, lastSync) {
 }
 
 function loadFromStorage() {
+  // Se Supabase è configurato, carica da lì
+  if(SB.isConfigured()){
+    loadFromSupabase();
+    return;
+  }
+  // Altrimenti usa localStorage
   try {
     var raw = localStorage.getItem('bnb_bookings');
     var ls = localStorage.getItem('bnb_lastSync');
@@ -92,6 +158,63 @@ function loadFromStorage() {
     }
   } catch(e) {}
   showOnboarding();
+}
+
+async function loadFromSupabase(){
+  setStatus('loading', 'Caricamento dal database…');
+  try {
+    // Carica prenotazioni non cancellate (attive + storiche)
+    var today = ds(new Date());
+    var rows = await SB.get('bookings',
+      'or=(checkout.gte.' + today + ',stato.eq.Attiva)&order=checkin.desc&limit=500'
+    );
+    if(!Array.isArray(rows) || rows.length === 0){
+      // Nessun dato su Supabase → mostra onboarding
+      showOnboarding();
+      setStatus('loading', 'Nessuna prenotazione nel database. Carica il file Excel.');
+      return;
+    }
+
+    // Carica le note
+    var notes = await SB.get('notes', 'select=codice,pagamento_ok,no_show,note,note_colazione');
+    var notesMap = {};
+    if(Array.isArray(notes)){
+      notes.forEach(function(n){ notesMap[n.codice] = n; });
+    }
+    localStorage.setItem('bnb_notes', JSON.stringify(
+      Object.fromEntries(Object.entries(notesMap).map(function(e){
+        return [e[0], {
+          pagamentoOk: e[1].pagamento_ok,
+          noShow: e[1].no_show,
+          note: e[1].note||'',
+          noteColazione: e[1].note_colazione||''
+        }];
+      }))
+    ));
+
+    bookings = rows.map(function(r){
+      return {
+        codice: r.codice, canale: r.canale||'',
+        checkin: r.checkin ? parseLocalDate(r.checkin) : null,
+        checkout: r.checkout ? parseLocalDate(r.checkout) : null,
+        nome: r.nome||'', cognome: r.cognome||'', paese: r.paese||'',
+        importo: parseFloat(r.importo)||0, commissioni: parseFloat(r.commissioni)||0,
+        tassa: parseFloat(r.tassa_soggiorno)||0, camera: r.camera||'',
+        adulti: parseInt(r.adulti)||0, bambini: parseInt(r.bambini)||0,
+        stato: r.stato||'Attiva'
+      };
+    });
+
+    var d = new Date();
+    setStatus('ok', rows.length + ' pren. · DB ' + d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));
+    document.getElementById('app-sub').textContent = rows.length + ' prenotazioni';
+    showMainApp();
+    renderAll();
+  } catch(e){
+    setStatus('err', 'Errore DB: ' + e.message);
+    // Fallback a localStorage
+    loadFromStorage();
+  }
 }
 
 // ─── SYNC ────────────────────────────────────────────────
@@ -222,15 +345,103 @@ function processData(rows) {
       stato: r['Stato']||''
     };
   });
+
   var now = new Date().toISOString();
+  // Salva sempre in locale (funziona anche senza Supabase)
   saveToStorage(bookings.map(function(b){
     return Object.assign({},b,{checkin:b.checkin?ds(b.checkin):null,checkout:b.checkout?ds(b.checkout):null});
   }), now);
+
   var d = new Date(now);
   setStatus('ok','Aggiornato alle ' + d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));
   document.getElementById('app-sub').textContent = bookings.length + ' prenotazioni';
   showMainApp();
   renderAll();
+
+  // Sync con Supabase (se configurato)
+  if(SB.isConfigured()){
+    setStatus('loading', 'Sincronizzazione database…');
+    syncToSupabase(bookings).then(function(result){
+      setStatus('ok', 'Database aggiornato · ' + result);
+    }).catch(function(e){
+      setStatus('err', 'Sync DB fallita: ' + e.message);
+    });
+  }
+}
+
+async function syncToSupabase(newBookings){
+  var today = ds(new Date());
+
+  // 1. Carica dal DB le prenotazioni con checkout >= oggi
+  var existing = await SB.get('bookings', 'checkout=gte.' + today + '&select=codice,stato,checkin,checkout');
+  if(!Array.isArray(existing)) throw new Error('Risposta DB non valida');
+
+  // 2. Costruisci mappa codice → prenotazione esistente
+  var existingMap = {};
+  existing.forEach(function(b){ existingMap[b.codice] = b; });
+
+  // 3. Mappa dei codici nel nuovo file Excel (solo quelli con checkout >= oggi)
+  var newMap = {};
+  newBookings.forEach(function(b){
+    if(b.checkout && ds(b.checkout) >= today) newMap[b.codice] = b;
+  });
+
+  // 4. Prenotazioni da inserire/aggiornare (nel file Excel)
+  var toUpsert = newBookings.map(function(b){
+    return {
+      codice:         b.codice,
+      canale:         b.canale,
+      checkin:        b.checkin ? ds(b.checkin) : null,
+      checkout:       b.checkout ? ds(b.checkout) : null,
+      cognome:        b.cognome,
+      nome:           b.nome,
+      paese:          b.paese,
+      importo:        b.importo,
+      commissioni:    b.commissioni,
+      tassa_soggiorno: b.tassa,
+      camera:         b.camera,
+      adulti:         b.adulti,
+      bambini:        b.bambini,
+      stato:          b.stato || 'Attiva'
+    };
+  });
+
+  // 5. Prenotazioni nel DB con checkout futuro ma NON nel nuovo file → Cancellata
+  var toCancelCodici = Object.keys(existingMap).filter(function(cod){
+    return !newMap[cod] && existingMap[cod].stato !== 'Cancellata';
+  });
+
+  // 6. Prenotazioni già "Cancellata" che ricompaiono nel file → Attiva
+  var toRestoreCodici = Object.keys(existingMap).filter(function(cod){
+    return newMap[cod] && existingMap[cod].stato === 'Cancellata';
+  });
+
+  // Esegui upsert delle prenotazioni del file
+  if(toUpsert.length > 0){
+    // Upsert a batch di 50
+    for(var i=0; i<toUpsert.length; i+=50){
+      await SB.upsert('bookings', toUpsert.slice(i, i+50));
+    }
+  }
+
+  // Marca come Cancellata le prenotazioni sparite
+  for(var j=0; j<toCancelCodici.length; j++){
+    await SB.update('bookings', {codice: toCancelCodici[j]}, {
+      stato: 'Cancellata',
+      stato_precedente: existingMap[toCancelCodici[j]].stato,
+      cancellata_il: new Date().toISOString()
+    });
+  }
+
+  // Ripristina le prenotazioni ricomparse
+  for(var k=0; k<toRestoreCodici.length; k++){
+    await SB.update('bookings', {codice: toRestoreCodici[k]}, { stato: 'Attiva' });
+  }
+
+  var msg = toUpsert.length + ' aggiornate';
+  if(toCancelCodici.length) msg += ', ' + toCancelCodici.length + ' cancellate';
+  if(toRestoreCodici.length) msg += ', ' + toRestoreCodici.length + ' ripristinate';
+  return msg;
 }
 
 function excelDate(n){
@@ -366,30 +577,64 @@ function togglePagamento(codice){
   if(!notes[codice]) notes[codice] = {};
   notes[codice].pagamentoOk = !notes[codice].pagamentoOk;
   localStorage.setItem('bnb_notes', JSON.stringify(notes));
-  // Aggiorna tutti i badge con questo codice
   document.querySelectorAll('#badge-pag-'+codice).forEach(function(el){
     el.textContent = notes[codice].pagamentoOk ? '✓ Regolare' : '⚠ Da regolarizzare';
     el.className = 'rsbadge ' + (notes[codice].pagamentoOk ? 'b-ok' : 'b-ko');
   });
+  if(SB.isConfigured()){
+    SB.upsert('notes', {codice: codice,
+      pagamento_ok: notes[codice].pagamentoOk,
+      note: (notes[codice]||{}).note||'',
+      note_colazione: (notes[codice]||{}).noteColazione||''
+    }).catch(function(){});
+  }
 }
 
 function saveNote(codice, valore){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
   if(!notes[codice]) notes[codice] = {};
-  // Accetta valore diretto o lo legge dal DOM
-  var val = valore !== undefined ? valore : (document.getElementById('note-'+codice)||{}).value || '';
+  var val = valore !== undefined ? valore : '';
   notes[codice].note = val;
   localStorage.setItem('bnb_notes', JSON.stringify(notes));
+  var ta = document.querySelector('[data-save-note="'+codice+'"]');
+  if(ta){ ta.style.fontWeight = val.trim() ? '700' : ''; ta.style.color = val.trim() ? '#dc2626' : ''; }
+  // Sync Supabase
+  if(SB.isConfigured()){
+    SB.upsert('notes', {codice: codice, note: val,
+      pagamento_ok: !!(notes[codice]||{}).pagamentoOk,
+      note_colazione: (notes[codice]||{}).noteColazione||''
+    }).catch(function(){});
+  }
 }
 
 function saveColNote(codice, valore){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
   if(!notes[codice]) notes[codice] = {};
-  notes[codice].noteColazione = valore !== undefined ? valore : '';
+  var val = valore !== undefined ? valore : '';
+  notes[codice].noteColazione = val;
   localStorage.setItem('bnb_notes', JSON.stringify(notes));
+  var ta = document.querySelector('[data-save-col-note="'+codice+'"]');
+  if(ta){ ta.style.fontWeight = val.trim() ? '700' : ''; ta.style.color = val.trim() ? '#dc2626' : ''; }
+  if(SB.isConfigured()){
+    SB.upsert('notes', {codice: codice, note_colazione: val,
+      pagamento_ok: !!(notes[codice]||{}).pagamentoOk,
+      note: (notes[codice]||{}).note||''
+    }).catch(function(){});
+  }
 }
 
 function resetApiKey(){localStorage.removeItem('bnb_apikey');addMsg('ai','API key rimossa. Alla prossima domanda ti verrà chiesta di nuovo.');}
+
+function configureDatabase(){
+  if(SB.isConfigured()){
+    var confirm = window.confirm('Database già configurato.\nVuoi riconfigurarlo?');
+    if(!confirm) return;
+  }
+  if(setupSupabase()){
+    alert('Database configurato! Al prossimo caricamento del file Excel i dati verranno sincronizzati.');
+    loadFromSupabase();
+  }
+}
 
 // ─── REPORTS ─────────────────────────────────────────────
 function openReport(type){
@@ -637,39 +882,40 @@ function reportColazione(today,todayStr,label){
     return b.checkin<=today && b.checkout>today &&
            (b.stato==='Attiva'||b.stato==='Modificata');
   });
-
   if(!presenti.length) return '<div class="rdate">'+label+'</div><div class="nodata">Nessun ospite presente oggi</div>';
 
-  var totAdulti = presenti.reduce(function(s,b){return s+b.adulti;},0);
-  var totBimbi  = presenti.reduce(function(s,b){return s+(b.bambini||0);},0);
-  var totTavoli = presenti.length; // 1 tavolo per camera
-
+  var totAdulti=0, totBimbi=0;
   var rows = presenti.map(function(b){
+    totAdulti += b.adulti; totBimbi += (b.bambini||0);
     var nd = notes[b.codice]||{};
     var noteCol = nd.noteColazione||'';
-    var ospiti = b.adulti + (b.bambini||0);
-    return '<div class="rec-card">' +
-      '<div class="rec-header"><div class="rec-name">'+b.camera+'</div>' +
-      '<span class="rsbadge b-dir">'+b.cognome+' '+b.nome+'</span></div>' +
-      '<div class="rec-grid">' +
-        '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
-        '<div class="rec-item"><span class="rec-lbl">Bambini</span><span class="rec-val">'+(b.bambini||0)+'</span></div>' +
-        '<div class="rec-item"><span class="rec-lbl">Coperti</span><span class="rec-val">'+ospiti+'</span></div>' +
-        '<div class="rec-item"><span class="rec-lbl">CO previsto</span><span class="rec-val">'+fmtDate(b.checkout)+'</span></div>' +
-      '</div>' +
-      '<textarea class="rec-note" data-save-col-note="'+b.codice+'" placeholder="Note colazione (allergie, dieta, richieste…)" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;resize:none;min-height:44px;font-family:inherit">'+noteCol+'</textarea>' +
-    '</div>';
+    var hasNote = noteCol.trim().length > 0;
+    var ospiti = b.adulti+(b.bambini||0);
+    return '<tr>' +
+      '<td style="font-weight:600;padding:7px 8px;border:0.5px solid var(--border)">'+b.camera+'</td>' +
+      '<td style="padding:7px 8px;border:0.5px solid var(--border)">'+b.cognome+' '+b.nome+'</td>' +
+      '<td style="text-align:center;padding:7px 8px;border:0.5px solid var(--border)">'+b.adulti+(b.bambini?' +'+b.bambini:'')+'</td>' +
+      '<td style="padding:7px 8px;border:0.5px solid var(--border)">' +
+        '<textarea data-save-col-note="'+b.codice+'" placeholder="Note…" style="width:100%;min-width:120px;padding:4px 6px;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg2);font-size:11px;resize:none;min-height:32px;font-family:inherit;'+(hasNote?'font-weight:700;color:#dc2626;':'color:var(--text)')+'">'+noteCol+'</textarea>' +
+      '</td>' +
+    '</tr>';
   }).join('');
 
-  var totali = '<div class="totali" style="margin-top:14px">' +
-    '<h3>Totali colazioni</h3>' +
-    '<div class="tot-row"><span>Camere presenti</span><span>'+presenti.length+'</span></div>' +
-    '<div class="tot-row"><span>Totale adulti</span><span>'+totAdulti+'</span></div>' +
-    (totBimbi?'<div class="tot-row"><span>Totale bambini</span><span>'+totBimbi+'</span></div>':'') +
-    '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Tavoli da allestire</span><span>'+totTavoli+' (max 2 persone per tavolo)</span></div>' +
-  '</div>';
-
-  return '<div class="rdate">'+label+'</div>' + rows + totali;
+  var totTavoli = presenti.length;
+  return '<div class="rdate">'+label+'</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:12px">' +
+    '<thead><tr>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Camera</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Ospite</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:center;border:0.5px solid var(--border);font-size:11px">Ad+Bim</th>' +
+      '<th style="background:var(--bg3);padding:6px 8px;text-align:left;border:0.5px solid var(--border);font-size:11px">Note colazione</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table>' +
+    '<div class="totali">' +
+      '<h3>Riepilogo colazioni</h3>' +
+      '<div class="tot-row"><span>Camere</span><span>'+presenti.length+'</span></div>' +
+      '<div class="tot-row"><span>Adulti / Bambini</span><span>'+totAdulti+' / '+totBimbi+'</span></div>' +
+      '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Tavoli da allestire</span><span>'+totTavoli+' (max 2 pp.)</span></div>' +
+    '</div>';
 }
 
 function reportPulizie(today,todayStr,label){
@@ -701,7 +947,7 @@ function reportReception(today,todayStr,label){
 
     // Tutti i canali: incasso fisico sul posto
     // Booking.com: incassa sempre tu, tassa sempre visibile
-    var quotaStr = '<span style="color:var(--coral-d);font-weight:600">€'+b.importo+' — Da incassare sul posto</span>';
+    var quotaStr = '<span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+b.importo+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span>';
 
     return '<div class="rec-card" id="rec-'+b.codice+'">' +
       '<div class="rec-header">' +
@@ -719,7 +965,7 @@ function reportReception(today,todayStr,label){
         '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span><div class="rec-val">'+quotaStr+'</div></div>' +
         '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span><div class="rec-val" style="color:var(--coral-d);font-weight:600">€'+tassa+(hasBimbi?' <small style="color:var(--text2);font-weight:400">(verificare età bambini per tassa)</small>':'')+'</div></div>' +
       '</div>' +
-      '<textarea class="rec-note" data-save-note="'+b.codice+'" placeholder="Note ospite…" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;resize:none;min-height:44px;font-family:inherit">'+noteText+'</textarea>' +
+      '<textarea class="rec-note" data-save-note="'+b.codice+'" placeholder="Note ospite…" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);font-size:12px;resize:none;min-height:44px;font-family:inherit;'+(noteText.trim()?'font-weight:700;color:#dc2626':'color:var(--text)')+'">'+noteText+'</textarea>' +
     '</div>';
   }
 
@@ -747,13 +993,17 @@ function reportReception(today,todayStr,label){
   html += cos.length ? '<div class="rstitle" style="margin:14px 0 10px">🔴 Partenze ('+cos.length+')</div>' + cos.map(rowPartenza).join('') : '<div class="nodata">Nessuna partenza oggi</div>';
 
   // Totale da incassare oggi
-  var totIncasso = cis.reduce(function(s,b){return s+b.importo;},0);
-  var totTasse   = cis.reduce(function(s,b){return s+calcTassa(b);},0);
+  var notes_tot = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+  var daIncassare = cis.filter(function(b){ return !(notes_tot[b.codice]||{}).pagamentoOk; });
+  var totIncasso = daIncassare.reduce(function(s,b){return s+b.importo;},0);
+  var totTasse   = daIncassare.reduce(function(s,b){return s+calcTassa(b);},0);
+  var saldati    = cis.filter(function(b){ return (notes_tot[b.codice]||{}).pagamentoOk; });
   html += '<div class="totali" style="margin-top:14px">' +
-    '<h3>Totali da incassare oggi</h3>' +
-    '<div class="tot-row"><span>Quota soggiorni</span><span>€'+totIncasso.toFixed(2)+'</span></div>' +
-    '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+totTasse.toFixed(2)+'</span></div>' +
-    '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span>€'+(totIncasso+totTasse).toFixed(2)+'</span></div>' +
+    '<h3>Totali reception oggi</h3>' +
+    (saldati.length ? '<div class="tot-row" style="color:var(--accent-d)"><span>✓ Ospiti saldati</span><span>'+saldati.length+'</span></div>' : '') +
+    '<div class="tot-row"><span>Quota soggiorni (da incassare)</span><span>€'+totIncasso.toFixed(2)+'</span></div>' +
+    '<div class="tot-row"><span>Tasse soggiorno (da incassare)</span><span>€'+totTasse.toFixed(2)+'</span></div>' +
+    '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span style="color:var(--coral-d)">€'+(totIncasso+totTasse).toFixed(2)+'</span></div>' +
   '</div>';
 
   return html;
@@ -786,7 +1036,7 @@ function reportCamere(today,todayStr,label){
   // Selettore data
   html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
     '<label style="font-size:12px;color:var(--text2)">Data inizio:</label>' +
-    '<input type="date" id="cam-start-date" value="'+ds(startDay)+'" ' +
+    '<input type="date" id="cam-start-date" value="'+ds(startDay)+'" style="padding:6px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px;outline:none" ' +
     'style="padding:6px 10px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:13px" ' +
     'onchange="refreshReportCamere()">' +
   '</div>';
@@ -797,7 +1047,7 @@ function reportCamere(today,todayStr,label){
 
     var active = bookings.filter(function(b){
       return (b.stato==='Attiva'||b.stato==='Modificata') &&
-             b.checkin <= day && b.checkout > day;
+             b.checkin <= day && b.checkout >= day;
     });
 
     if(!active.length){
@@ -841,7 +1091,7 @@ function reportCamere(today,todayStr,label){
         '<div style="font-size:12px;margin:3px 0"><strong>'+tipoPulizia+'</strong></div>' +
         '<div style="font-size:11px;color:var(--text2)">👥 '+ospiti+' ospiti ('+b.adulti+' adulti'+(b.bambini?' + '+b.bambini+' bimbi':'')+')</div>' +
         dotazioniCamera(b, day) +
-        (noteText?'<div style="font-size:11px;color:var(--text2);margin-top:4px;padding:5px;background:var(--bg3);border-radius:6px">📝 '+noteText+'</div>':'') +
+        (noteText?'<div style="font-size:12px;font-weight:700;color:#dc2626;margin-top:4px;padding:5px;background:var(--bg3);border-radius:6px">📝 '+noteText+'</div>':'') +
       '</div>';
     });
 
