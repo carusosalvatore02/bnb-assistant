@@ -575,14 +575,41 @@ function togglePagamento(codice){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
   if(!notes[codice]) notes[codice] = {};
   notes[codice].pagamentoOk = !notes[codice].pagamentoOk;
+  var ok = notes[codice].pagamentoOk;
   localStorage.setItem('bnb_notes', JSON.stringify(notes));
-  document.querySelectorAll('#badge-pag-'+codice).forEach(function(el){
-    el.textContent = notes[codice].pagamentoOk ? '✓ Regolare' : '⚠ Da regolarizzare';
-    el.className = 'rsbadge ' + (notes[codice].pagamentoOk ? 'b-ok' : 'b-ko');
+
+  // Aggiorna badge
+  document.querySelectorAll('[id="badge-pag-'+codice+'"]').forEach(function(el){
+    el.textContent = ok ? '✓ Regolare' : '⚠ Da regolarizzare';
+    el.className = 'rsbadge ' + (ok ? 'b-ok' : 'b-ko');
   });
+
+  // Aggiorna colori quota/tassa nella card (arrivi e partenze)
+  var card = document.getElementById('rec-'+codice);
+  if(card){
+    card.querySelectorAll('.rec-val span[style*="color"]').forEach(function(el){
+      el.style.color = ok ? 'var(--accent-d)' : 'var(--coral-d)';
+      el.textContent = el.textContent.replace(ok ? 'Da Incassare' : 'Saldato', ok ? 'Saldato' : 'Da Incassare');
+    });
+  }
+
+  // Ricalcola totali reception in tempo reale
+  var totBox = document.getElementById('totali-reception');
+  if(totBox){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayStr = ds(today);
+    var cis = bookings.filter(function(b){return ds(b.checkin)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
+    var cos = bookings.filter(function(b){return ds(b.checkout)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
+    var tuttiCodici = {};
+    cis.forEach(function(b){ tuttiCodici[b.codice]=b; });
+    cos.forEach(function(b){ tuttiCodici[b.codice]=b; });
+    var freshNotes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
+    totBox.outerHTML = renderTotaliReception(Object.values(tuttiCodici), freshNotes);
+  }
+
   if(SB.isConfigured()){
     SB.upsert('notes', {codice: codice,
-      pagamento_ok: notes[codice].pagamentoOk,
+      pagamento_ok: ok,
       note: (notes[codice]||{}).note||'',
       note_colazione: (notes[codice]||{}).noteColazione||''
     }).catch(function(){});
@@ -683,7 +710,6 @@ function calcTassa(b){
 }
 
 function dotazioniCamera(b, refDay){
-  // refDay: Date del giorno di riferimento
   var notti = getNotti(b);
   var checkinDay = Math.round((refDay - b.checkin)/86400000); // 0=giorno arrivo
   var isCheckout = ds(b.checkout) === ds(refDay);
@@ -694,24 +720,30 @@ function dotazioniCamera(b, refDay){
            '<span class="dotaz-items">2 lenzuola · 2 federe · 2 teli doccia · 2 teli viso · 2 teli bidet · 1 tappetino · 2 spazzolini · 2 cuffie doccia</span></div>';
   }
 
-  // Giorno di fermata: checkinDay = giorni trascorsi dall'arrivo (1 = prima notte finita)
-  var giornoFermata = checkinDay; // 1-based dal giorno dopo l'arrivo
-  var items = [];
+  var giornoFermata = checkinDay;
+  // È l'ultima notte se domani è il checkout
+  var domani = new Date(refDay); domani.setDate(domani.getDate()+1);
+  var isUltimaNotte = ds(domani) === ds(b.checkout);
 
-  // Set letto: ogni 4 giorni (giorni 4, 8, 12...)
   var cambioLetto = giornoFermata > 0 && giornoFermata % 4 === 0;
-  // Set bagno: ogni 2 giorni (giorni 2, 4, 6...)
   var cambioBagno = giornoFermata > 0 && giornoFermata % 2 === 0;
 
-  if(cambioLetto){
-    items.push('🛏 Set Letto: 2 lenzuola · 2 federe');
+  // Caso speciale: cambio previsto MA è l'ultima notte
+  if((cambioLetto || cambioBagno) && isUltimaNotte){
+    var cosa = cambioLetto && cambioBagno ? 'Lenzuola e Set Bagno' :
+               cambioLetto ? 'Lenzuola' : 'Set Bagno';
+    return '<div class="dotaz" style="border-left:3px solid #f59e0b;padding-left:8px">' +
+      '<strong style="color:#92400e">⚠ Cambio '+cosa+' — ULTIMA NOTTE<br>' +
+      'Cambiare solo se in pessime condizioni per evitare sprechi</strong></div>';
   }
-  if(cambioBagno){
-    items.push('🚿 Set Bagno: 2 teli doccia · 2 teli viso · 2 teli bidet · 1 tappetino');
-  }
+
   if(!cambioLetto && !cambioBagno){
     return '<div class="dotaz">✨ Solo riassetto — nessun cambio biancheria oggi</div>';
   }
+
+  var items = [];
+  if(cambioLetto) items.push('🛏 Set Letto: 2 lenzuola · 2 federe');
+  if(cambioBagno) items.push('🚿 Set Bagno: 2 teli doccia · 2 teli viso · 2 teli bidet · 1 tappetino');
   return '<div class="dotaz">' + items.join('<br>') + '</div>';
 }
 
@@ -936,6 +968,11 @@ function reportReception(today,todayStr,label){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
   var cis = bookings.filter(function(b){return ds(b.checkin)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
   var cos = bookings.filter(function(b){return ds(b.checkout)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
+  // Tutti gli ospiti del giorno (arrivi + partenze, senza duplicati)
+  var tuttiCodici = {};
+  cis.forEach(function(b){ tuttiCodici[b.codice] = b; });
+  cos.forEach(function(b){ tuttiCodici[b.codice] = b; });
+  var tutti = Object.values(tuttiCodici);
 
   function rowArrivo(b){
     var notti = getNotti(b);
@@ -944,12 +981,8 @@ function reportReception(today,todayStr,label){
     var pagamentoOk = nd.pagamentoOk||false;
     var noteText = nd.note||'';
     var hasBimbi = b.bambini > 0;
-    var canale = getCanale(b);
-
-    // Tutti i canali: incasso fisico sul posto
-    // Booking.com: incassa sempre tu, tassa sempre visibile
     var quotaStr = '<span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+b.importo+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span>';
-
+    var tassaStr = '<span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+tassa+(hasBimbi?' <small style="color:var(--text2);font-weight:400">(verificare età bambini)</small>':'')+(pagamentoOk?' — Saldato':' — Da Incassare')+'</span>';
     return '<div class="rec-card" id="rec-'+b.codice+'">' +
       '<div class="rec-header">' +
         '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
@@ -964,7 +997,7 @@ function reportReception(today,todayStr,label){
         '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Bambini</span><span class="rec-val">'+(b.bambini||0)+'</span></div>' +
         '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span><div class="rec-val">'+quotaStr+'</div></div>' +
-        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span><div class="rec-val" style="color:var(--coral-d);font-weight:600">€'+tassa+(hasBimbi?' <small style="color:var(--text2);font-weight:400">(verificare età bambini per tassa)</small>':'')+'</div></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span><div class="rec-val">'+tassaStr+'</div></div>' +
       '</div>' +
       '<textarea class="rec-note" data-save-note="'+b.codice+'" placeholder="Note ospite…" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border2);background:var(--bg2);font-size:12px;resize:none;min-height:44px;font-family:inherit;'+(noteText.trim()?'font-weight:700;color:#dc2626':'color:var(--text)')+'">'+noteText+'</textarea>' +
     '</div>';
@@ -974,6 +1007,7 @@ function reportReception(today,todayStr,label){
     var nd = notes[b.codice]||{};
     var pagamentoOk = nd.pagamentoOk||false;
     var notti = getNotti(b);
+    var tassa = calcTassa(b);
     return '<div class="rec-card checkout-card">' +
       '<div class="rec-header">' +
         '<div class="rec-name">'+b.cognome+' '+b.nome+'</div>' +
@@ -986,6 +1020,8 @@ function reportReception(today,todayStr,label){
         '<div class="rec-item"><span class="rec-lbl">Notti</span><span class="rec-val">'+notti+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Adulti</span><span class="rec-val">'+b.adulti+'</span></div>' +
         '<div class="rec-item"><span class="rec-lbl">Canale</span><span class="rec-val">'+getCanale(b)+'</span></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Quota soggiorno</span><div class="rec-val"><span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+b.importo+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span></div></div>' +
+        '<div class="rec-item" style="grid-column:1/-1"><span class="rec-lbl">Tassa soggiorno</span><div class="rec-val"><span style="color:'+(pagamentoOk?'var(--accent-d)':'var(--coral-d)')+';font-weight:600">€'+tassa+' — '+(pagamentoOk?'Saldato':'Da Incassare')+'</span></div></div>' +
       '</div></div>';
   }
 
@@ -993,21 +1029,25 @@ function reportReception(today,todayStr,label){
   html += cis.length ? '<div class="rstitle" style="margin-bottom:10px">🟢 Arrivi ('+cis.length+')</div>' + cis.map(rowArrivo).join('') : '<div class="nodata" style="margin-bottom:12px">Nessun arrivo oggi</div>';
   html += cos.length ? '<div class="rstitle" style="margin:14px 0 10px">🔴 Partenze ('+cos.length+')</div>' + cos.map(rowPartenza).join('') : '<div class="nodata">Nessuna partenza oggi</div>';
 
-  // Totale da incassare oggi
-  var notes_tot = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
-  var daIncassare = cis.filter(function(b){ return !(notes_tot[b.codice]||{}).pagamentoOk; });
-  var totIncasso = daIncassare.reduce(function(s,b){return s+b.importo;},0);
-  var totTasse   = daIncassare.reduce(function(s,b){return s+calcTassa(b);},0);
-  var saldati    = cis.filter(function(b){ return (notes_tot[b.codice]||{}).pagamentoOk; });
-  html += '<div class="totali" style="margin-top:14px">' +
+  // Box totali con ID per aggiornamento in tempo reale
+  html += renderTotaliReception(tutti, notes);
+  return html;
+}
+
+function renderTotaliReception(tutti, notes){
+  // Ricalcola ogni volta — include arrivi E partenze non saldati
+  var da_incassare = tutti.filter(function(b){ return !(notes[b.codice]||{}).pagamentoOk; });
+  var saldati      = tutti.filter(function(b){  return  (notes[b.codice]||{}).pagamentoOk; });
+  var totIncasso   = da_incassare.reduce(function(s,b){ return s+b.importo; }, 0);
+  var totTasse     = da_incassare.reduce(function(s,b){ return s+calcTassa(b); }, 0);
+  return '<div class="totali" id="totali-reception" style="margin-top:14px">' +
     '<h3>Totali reception oggi</h3>' +
     (saldati.length ? '<div class="tot-row" style="color:var(--accent-d)"><span>✓ Ospiti saldati</span><span>'+saldati.length+'</span></div>' : '') +
-    '<div class="tot-row"><span>Quota soggiorni (da incassare)</span><span>€'+totIncasso.toFixed(2)+'</span></div>' +
-    '<div class="tot-row"><span>Tasse soggiorno (da incassare)</span><span>€'+totTasse.toFixed(2)+'</span></div>' +
+    '<div class="tot-row"><span>Ospiti da regolarizzare</span><span>'+da_incassare.length+'</span></div>' +
+    '<div class="tot-row"><span>Quota soggiorni</span><span>€'+totIncasso.toFixed(2)+'</span></div>' +
+    '<div class="tot-row"><span>Tasse soggiorno</span><span>€'+totTasse.toFixed(2)+'</span></div>' +
     '<div class="tot-row" style="font-weight:700;border-top:1px solid rgba(0,0,0,.1);margin-top:6px;padding-top:6px"><span>Totale da incassare</span><span style="color:var(--coral-d)">€'+(totIncasso+totTasse).toFixed(2)+'</span></div>' +
   '</div>';
-
-  return html;
 }
 
 function reportCamere(today,todayStr,label){
@@ -1156,7 +1196,7 @@ function camRow(b, day, tipo, notes){
     '<div class="cam-row-hdr">' +
       '<span class="cam-nome">'+b.camera+'</span>' +
       '<span class="rsbadge b-dir" style="font-size:10px">'+b.cognome+' '+b.nome+'</span>' +
-      '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'">'+(pagamentoOk?'✓':'⚠')+'</span>' +
+      '<span class="rsbadge '+(pagamentoOk?'b-ok':'b-ko')+'">'+(pagamentoOk?'✓':'!')+'</span>' +
     '</div>' +
     '<div style="font-size:12px;color:var(--text2);margin:2px 0">Notte '+(isCheckout?notti:checkinDay+1)+'/'+notti+' · '+getCanale(b)+'</div>' +
     '<div style="font-size:12px;margin:3px 0"><strong>'+tipoPulizia+'</strong></div>' +
@@ -1218,7 +1258,7 @@ function reportSettimanale(today,todayStr,label){
     function rowCal(b, tipo){
       var ospiti = b.adulti + (b.bambini||0);
       var nd = notes[b.codice]||{};
-      var pag = nd.pagamentoOk ? '✓' : '⚠';
+      var pag = nd.pagamentoOk ? '✓' : '!';
       var pagColor = nd.pagamentoOk ? '#0F6E56' : '#993C1D';
       var tipoLabel = tipo==='arrivo' ? '🟢 Arr.' : tipo==='partenza' ? '🔴 Part.' : '🔵 Stay';
       var bgRow = tipo==='arrivo' ? 'rgba(29,158,117,.06)' : tipo==='partenza' ? 'rgba(153,60,29,.06)' : '';
