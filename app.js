@@ -600,9 +600,11 @@ function togglePagamento(codice){
     var todayStr = ds(today);
     var cis = bookings.filter(function(b){return ds(b.checkin)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
     var cos = bookings.filter(function(b){return ds(b.checkout)===todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
+    var inCasaT = bookings.filter(function(b){return b.checkin<today&&b.checkout>today&&ds(b.checkin)!==todayStr&&(b.stato==='Attiva'||b.stato==='Modificata');});
     var tuttiCodici = {};
     cis.forEach(function(b){ tuttiCodici[b.codice]=b; });
     cos.forEach(function(b){ tuttiCodici[b.codice]=b; });
+    inCasaT.forEach(function(b){ tuttiCodici[b.codice]=b; });
     var freshNotes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
     // Ricalcola totali inline
     var _tutti = Object.values(tuttiCodici);
