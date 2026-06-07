@@ -1,7 +1,10 @@
 // ─── CONFIGURAZIONE SUPABASE ──────────────────────────────────────────────
 // Inserisci qui le tue credenziali Supabase (Settings → API)
-var SUPABASE_URL = localStorage.getItem('sb_url') || '';
+// Project URL preconfigurato
+var SUPABASE_URL = localStorage.getItem('sb_url') || 'https://rtyqvvjrzfjsjywxlnle.supabase.co';
 var SUPABASE_KEY = localStorage.getItem('sb_key') || '';
+// Salva l'URL se non era già salvato
+if(!localStorage.getItem('sb_url')) localStorage.setItem('sb_url','https://rtyqvvjrzfjsjywxlnle.supabase.co');
 
 // Client Supabase minimale (senza libreria esterna)
 var SB = {
@@ -45,13 +48,9 @@ var SB = {
 };
 
 function setupSupabase(){
-  var url = prompt('Inserisci il Supabase Project URL\n(es. https://xxxx.supabase.co)\n\nLo trovi in: Settings → API → Project URL');
-  if(!url || !url.startsWith('https://')) return false;
-  var key = prompt('Inserisci la Supabase anon public key\n\nLa trovi in: Settings → API → anon public');
-  if(!key) return false;
-  localStorage.setItem('sb_url', url.trim());
+  var key = prompt('Inserisci la Supabase anon public key\n\nDove trovarla:\n1. Vai su supabase.com → il tuo progetto\n2. Settings → API Keys\n3. Tab "Legacy anon, service_role API keys"\n4. Copia la chiave "anon public"');
+  if(!key || key.length < 50) return false;
   localStorage.setItem('sb_key', key.trim());
-  SUPABASE_URL = url.trim();
   SUPABASE_KEY = key.trim();
   return true;
 }
@@ -879,7 +878,9 @@ function printReport(title, bodyHtml){
 function reportColazione(today,todayStr,label){
   var notes = JSON.parse(localStorage.getItem('bnb_notes')||'{}');
   var presenti = bookings.filter(function(b){
-    return b.checkin<=today && b.checkout>today &&
+    // Colazione: dal giorno DOPO l'arrivo (checkin dalle 15, non fanno colazione il giorno stesso)
+    // fino al giorno del checkout INCLUSO (partono dopo colazione)
+    return b.checkin < today && b.checkout >= today &&
            (b.stato==='Attiva'||b.stato==='Modificata');
   });
   if(!presenti.length) return '<div class="rdate">'+label+'</div><div class="nodata">Nessun ospite presente oggi</div>';
