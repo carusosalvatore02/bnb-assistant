@@ -23,10 +23,12 @@ var SB = {
     var r = await fetch(SB.url(table, params), { headers: SB.headers() });
     return r.json();
   },
-  upsert: async function(table, data){
-    var r = await fetch(SB.url(table), {
+  upsert: async function(table, data, conflictCol){
+    var prefer = 'resolution=merge-duplicates,return=minimal';
+    var url = SB.url(table) + (conflictCol ? '?on_conflict=' + conflictCol : '');
+    var r = await fetch(url, {
       method: 'POST',
-      headers: Object.assign({}, SB.headers(), {'Prefer': 'resolution=merge-duplicates,return=minimal'}),
+      headers: Object.assign({}, SB.headers(), {'Prefer': prefer}),
       body: JSON.stringify(Array.isArray(data) ? data : [data])
     });
     return r;
@@ -628,7 +630,7 @@ function togglePagamento(codice){
       pagamento_ok: ok,
       note: (notes[codice]||{}).note||'',
       note_colazione: (notes[codice]||{}).noteColazione||''
-    }).catch(function(){});
+    }, 'codice').catch(function(){});
   }
 }
 
@@ -645,7 +647,7 @@ function saveNote(codice, valore){
     SB.upsert('notes', {codice: codice, note: val,
       pagamento_ok: !!(notes[codice]||{}).pagamentoOk,
       note_colazione: (notes[codice]||{}).noteColazione||''
-    }).catch(function(){});
+    }, 'codice').catch(function(){});
   }
 }
 
@@ -661,7 +663,7 @@ function saveColNote(codice, valore){
     SB.upsert('notes', {codice: codice, note_colazione: val,
       pagamento_ok: !!(notes[codice]||{}).pagamentoOk,
       note: (notes[codice]||{}).note||''
-    }).catch(function(){});
+    }, 'codice').catch(function(){});
   }
 }
 
