@@ -842,7 +842,7 @@ async function generaPreventivo(){
   var note     = document.getElementById('pv-note').value.trim();
   var ctaLabel = document.getElementById('pv-cta-label').value.trim() || 'Prenota ora';
 
-  if(!nome){ toast('Inserisci il nome dell'ospite'); return; }
+  if(!nome){ toast("Inserisci il nome dell'ospite"); return; }
   if(!checkin || !checkout){ toast('Inserisci le date del soggiorno'); return; }
 
   // Raccogli camere
@@ -920,12 +920,12 @@ function copyToClipboard(text){
 
 function descrizioneCamera(nome){
   var desc = {
-    '1.Porta Carini': 'Camera matrimoniale elegante con balcone. Arredata in stile siciliano con pavimenti in cotto, letto king size, bagno en-suite con doccia e bidet.',
-    '2.Porta S. Agata': 'Spaziosa camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV smart e bagno privato.',
-    '3.Porta Reale': 'Camera matrimoniale con balcone panoramico. Ideale per chi vuole godere dell'autenticità del centro storico palermitano.',
-    '4.Suite Deluxe Con Vasca Idromassaggio': 'Suite di lusso con vasca idromassaggio privata. L'esperienza più esclusiva delle Stanze dei Tesori, per un soggiorno indimenticabile.'
+    '1.Porta Carini': "Camera matrimoniale elegante con balcone. Arredata in stile siciliano con pavimenti in cotto, letto king size, bagno en-suite con doccia e bidet.",
+    '2.Porta S. Agata': "Spaziosa camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV smart e bagno privato.",
+    '3.Porta Reale': "Camera matrimoniale con balcone panoramico. Ideale per chi vuole godere dell'autenticita' del centro storico palermitano.",
+    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite di lusso con vasca idromassaggio privata. L'esperienza piu' esclusiva delle Stanze dei Tesori, per un soggiorno indimenticabile."
   };
-  return desc[nome] || 'Camera matrimoniale con bagno privato, aria condizionata e tutti i comfort.';
+  return desc[nome] || "Camera matrimoniale con bagno privato, aria condizionata e tutti i comfort.";
 }
 
 function serviziCamera(nome){
