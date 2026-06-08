@@ -193,6 +193,30 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
 .b-ab{background:#f5e9fb;color:#7c3aed}
 .b-dir{background:#fef3c7;color:#92400e}
 .b-out{background:var(--coral-l);color:var(--coral-d)}
+/* MODAL PREVENTIVO */
+#prev-modal{position:fixed;inset:0;background:var(--bg);z-index:200;display:none;flex-direction:column;overflow:hidden}
+#prev-modal.open{display:flex}
+#prev-hdr{display:flex;align-items:center;gap:10px;padding:max(env(safe-area-inset-top),12px) 16px 12px;border-bottom:0.5px solid var(--border);flex-shrink:0}
+#prev-back{font-size:20px;background:none;border:none;cursor:pointer;padding:4px;color:var(--text)}
+#prev-title{font-size:16px;font-weight:600;flex:1}
+#prev-scroll{flex:1;overflow-y:auto;padding:16px;padding-bottom:40px}
+.prev-section{background:var(--bg2);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.prev-section h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);margin-bottom:10px}
+.prev-field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.prev-field:last-child{margin-bottom:0}
+.prev-label{font-size:12px;color:var(--text2);font-weight:500}
+.prev-input{padding:10px 12px;border-radius:var(--r-sm);border:0.5px solid var(--border2);background:var(--bg);font-size:14px;font-family:inherit;color:var(--text);outline:none;width:100%}
+.prev-input:focus{border-color:var(--accent)}
+.prev-input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cam-block{background:var(--bg);border-radius:var(--r-sm);padding:12px;border:0.5px solid var(--border2);margin-bottom:8px}
+.cam-block-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cam-block-title{font-size:13px;font-weight:600}
+.cam-del-btn{font-size:11px;color:var(--coral-d);cursor:pointer;padding:3px 8px;border:0.5px solid var(--coral-d);border-radius:20px;background:none;font-family:inherit}
+.prev-add-cam{width:100%;padding:10px;border-radius:var(--r-sm);border:0.5px dashed var(--border2);background:none;font-size:13px;color:var(--accent);cursor:pointer;font-family:inherit;margin-top:4px}
+.prev-link-box{background:var(--accent-l);border-radius:var(--r-sm);padding:12px;display:none}
+.prev-link-url{font-size:12px;font-family:monospace;color:var(--accent-d);word-break:break-all;margin-bottom:10px}
+.prev-genera-btn{width:100%;padding:14px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.prev-open-site-btn{width:100%;padding:10px;border-radius:var(--r-sm);border:0.5px solid var(--accent);background:none;color:var(--accent);font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}
 </style>
 </head>
 <body>
@@ -284,6 +308,11 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
         <div class="rcard" data-report="camere"><div class="ricon ri-b">🛏️</div><div class="rinfo"><div class="rtitle">Report Camere</div><div class="rdesc">Stato camere e pulizie — prossimi 7 giorni</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="settimanale"><div class="ricon ri-p">📊</div><div class="rinfo"><div class="rtitle">Riepilogo settimanale</div><div class="rdesc">Incassi, occupazione, statistiche</div></div><span class="rarrow">›</span></div>
         <div class="rcard" data-report="fabiola"><div class="ricon ri-g">📋</div><div class="rinfo"><div class="rtitle">Report Fabiola</div><div class="rdesc">Reception + Colazioni + Camere tutto in uno</div></div><span class="rarrow">›</span></div>
+
+      <!-- SEZIONE PREVENTIVI -->
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:16px 4px 6px">Preventivi</div>
+        <div class="rcard" id="btn-nuovo-preventivo" style="background:var(--accent);color:#fff"><div class="ricon" style="background:rgba(255,255,255,.2);color:#fff">✉️</div><div class="rinfo"><div class="rtitle" style="color:#fff">Nuovo Preventivo</div><div class="rdesc" style="color:rgba(255,255,255,.75)">Crea e condividi un preventivo personalizzato</div></div><span class="rarrow" style="color:#fff">›</span></div>
+        <div class="rcard" id="btn-lista-preventivi"><div class="ricon ri-p">📄</div><div class="rinfo"><div class="rtitle">Preventivi inviati</div><div class="rdesc">Storico e stato dei preventivi</div></div><span class="rarrow">›</span></div>
       </div>
     </div>
   </div>
@@ -328,5 +357,63 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
 </div>
 
 <script src="app.js"></script>
+
+<!-- MODAL PREVENTIVO -->
+<div id="prev-modal">
+  <div id="prev-hdr">
+    <button id="prev-back">‹</button>
+    <span id="prev-title">Nuovo Preventivo</span>
+  </div>
+  <div id="prev-scroll">
+    <div class="prev-section">
+      <h3>👤 Ospite</h3>
+      <div class="prev-field"><label class="prev-label">Nome e cognome ospite</label><input class="prev-input" id="pv-nome" placeholder="es. Mario Rossi"></div>
+      <div class="prev-input-row">
+        <div class="prev-field"><label class="prev-label">Adulti</label><input class="prev-input" id="pv-adulti" type="number" min="1" value="2"></div>
+        <div class="prev-field"><label class="prev-label">Bambini</label><input class="prev-input" id="pv-bambini" type="number" min="0" value="0"></div>
+      </div>
+    </div>
+    <div class="prev-section">
+      <h3>📅 Date</h3>
+      <div class="prev-input-row">
+        <div class="prev-field"><label class="prev-label">Check-in</label><input class="prev-input" id="pv-checkin" type="date"></div>
+        <div class="prev-field"><label class="prev-label">Check-out</label><input class="prev-input" id="pv-checkout" type="date"></div>
+      </div>
+      <button class="prev-open-site-btn" id="pv-open-site">🌐 Apri il tuo sito con queste date per vedere i prezzi</button>
+    </div>
+    <div class="prev-section">
+      <h3>🛏 Camere</h3>
+      <div id="pv-camere-list"></div>
+      <button class="prev-add-cam" id="pv-add-cam">+ Aggiungi camera</button>
+    </div>
+    <div class="prev-section">
+      <h3>📋 Condizioni</h3>
+      <div class="prev-field">
+        <label class="prev-label">Politica di cancellazione</label>
+        <select class="prev-input" id="pv-cancellazione">
+          <option value="flessibile">Flessibile (gratuita fino a 24h prima)</option>
+          <option value="moderata" selected>Moderata (gratuita fino a 5 giorni prima)</option>
+          <option value="rigida">Rigida (gratuita fino a 14 giorni prima)</option>
+          <option value="nonrimborsabile">Non rimborsabile</option>
+        </select>
+      </div>
+      <div class="prev-field"><label class="prev-label">Scadenza offerta</label><input class="prev-input" id="pv-scadenza" type="date"></div>
+    </div>
+    <div class="prev-section">
+      <h3>📝 Note per l'ospite (opzionale)</h3>
+      <textarea class="prev-input" id="pv-note" placeholder="Parcheggio convenzionato, check-in flessibile…" style="min-height:80px;resize:none"></textarea>
+    </div>
+    <div class="prev-section">
+      <h3>🔗 Link pulsante prenotazione</h3>
+      <div class="prev-field"><label class="prev-label">Testo pulsante</label><input class="prev-input" id="pv-cta-label" value="🏨 Prenota ora"></div>
+    </div>
+    <button class="prev-genera-btn" id="pv-genera">✨ Genera preventivo</button>
+    <div class="prev-link-box" id="pv-link-box" style="margin-top:12px;display:none">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:var(--accent-d)">✓ Preventivo creato!</div>
+      <div class="prev-link-url" id="pv-link-url"></div>
+      <button id="pv-condividi" style="width:100%;padding:11px;border-radius:var(--r-sm);border:none;background:#25D366;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">📤 Condividi su WhatsApp / Email</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

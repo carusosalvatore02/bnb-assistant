@@ -73,6 +73,7 @@ let chatHistory = [];
 document.addEventListener('DOMContentLoaded', function() {
   bindEvents();
   loadFromStorage();
+  initPreventivi();
 });
 
 function bindEvents() {
@@ -679,6 +680,259 @@ function configureDatabase(){
     alert('Database configurato! Al prossimo caricamento del file Excel i dati verranno sincronizzati.');
     loadFromSupabase();
   }
+}
+
+
+// ─── PREVENTIVI ───────────────────────────────────────────────────────────
+
+function initPreventivi(){
+  document.getElementById('btn-nuovo-preventivo').addEventListener('click', openNuovoPreventivo);
+  document.getElementById('btn-lista-preventivi').addEventListener('click', openListaPreventivi);
+  document.getElementById('prev-back').addEventListener('click', closePreventivo);
+  document.getElementById('pv-add-cam').addEventListener('click', addCameraBlock);
+  document.getElementById('pv-open-site').addEventListener('click', openSiteConDate);
+  document.getElementById('pv-genera').addEventListener('click', generaPreventivo);
+  document.getElementById('pv-condividi').addEventListener('click', condividiPreventivo);
+
+  // Scadenza default: +7 giorni
+  var d = new Date(); d.setDate(d.getDate()+7);
+  document.getElementById('pv-scadenza').value = ds(d);
+}
+
+var pvCamereCount = 0;
+var ultimoIdGenerato = null;
+
+function openNuovoPreventivo(){
+  document.getElementById('prev-modal').classList.add('open');
+  document.getElementById('prev-title').textContent = 'Nuovo Preventivo';
+  document.getElementById('pv-link-box').style.display = 'none';
+  pvCamereCount = 0;
+  document.getElementById('pv-camere-list').innerHTML = '';
+  addCameraBlock();
+}
+
+function openListaPreventivi(){
+  document.getElementById('prev-modal').classList.add('open');
+  document.getElementById('prev-title').textContent = 'Preventivi inviati';
+  document.getElementById('prev-scroll').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);font-size:14px">Caricamento…</div>';
+  loadListaPreventivi();
+}
+
+function closePreventivo(){
+  document.getElementById('prev-modal').classList.remove('open');
+  // Ripristina scroll se era lista
+  if(document.getElementById('prev-title').textContent === 'Preventivi inviati'){
+    location.reload();
+  }
+}
+
+async function loadListaPreventivi(){
+  if(!SB.isConfigured()){ 
+    document.getElementById('prev-scroll').innerHTML = '<div style="padding:20px;color:var(--text2);font-size:14px">Configura Supabase per vedere i preventivi.</div>';
+    return;
+  }
+  var rows = await SB.get('preventivi','select=id,nome_ospite,checkin,checkout,scadenza,creato_il&order=creato_il.desc&limit=30');
+  var oggi = ds(new Date());
+  var html = '<div style="padding:0 0 16px">';
+  if(!rows || !rows.length){
+    html += '<div style="padding:20px;text-align:center;color:var(--text2);font-size:14px">Nessun preventivo ancora.</div>';
+  } else {
+    rows.forEach(function(r){
+      var scaduto = r.scadenza && r.scadenza < oggi;
+      var url = location.origin + location.pathname.replace('index.html','') + 'preventivo/?id=' + r.id;
+      html += '<div style="background:var(--bg2);border-radius:var(--r);padding:14px;margin-bottom:10px;border-left:3px solid '+(scaduto?'var(--border2)':'var(--accent)')+'">' +
+        '<div style="font-size:15px;font-weight:600;margin-bottom:4px">' + r.nome_ospite + '</div>' +
+        '<div style="font-size:12px;color:var(--text2)">' + fmtDate(new Date(r.checkin+'T00:00:00')) + ' → ' + fmtDate(new Date(r.checkout+'T00:00:00')) + '</div>' +
+        '<div style="font-size:11px;color:'+(scaduto?'var(--coral-d)':'var(--accent-d)')+';margin-top:4px">' + (scaduto ? '⏰ Scaduto' : '✓ Attivo') + (r.scadenza ? ' · fino al ' + r.scadenza : '') + '</div>' +
+        '<button data-prev-id="' + r.id + '" style="margin-top:8px;padding:7px 14px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg);font-size:12px;cursor:pointer;font-family:inherit">📤 Condividi</button>' +
+      '</div>';
+    });
+  }
+  html += '</div>';
+  // Aggiungi bottone nuovo preventivo in fondo
+  html += '<button id="pv-nuovo-dalla-lista" style="width:100%;padding:13px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">+ Nuovo Preventivo</button>';
+  document.getElementById('prev-scroll').innerHTML = html;
+
+  // Bind condividi buttons
+  document.querySelectorAll('[data-prev-id]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.prevId;
+      var url = location.origin + location.pathname.replace(/\/[^\/]*$/, '') + '/preventivo/?id=' + id;
+      condividiUrl(url, 'Preventivo Le Stanze dei Tesori');
+    });
+  });
+  var btnNuovo = document.getElementById('pv-nuovo-dalla-lista');
+  if(btnNuovo) btnNuovo.addEventListener('click', openNuovoPreventivo);
+}
+
+function addCameraBlock(){
+  pvCamereCount++;
+  var idx = pvCamereCount;
+  var div = document.createElement('div');
+  div.className = 'cam-block';
+  div.id = 'cam-block-' + idx;
+  div.innerHTML = '<div class="cam-block-hdr">' +
+    '<span class="cam-block-title">🛏 Camera ' + idx + '</span>' +
+    (idx > 1 ? '<button class="cam-del-btn" data-cam-del="' + idx + '">✕ Rimuovi</button>' : '') +
+  '</div>' +
+  '<div class="prev-field"><label class="prev-label">Nome camera</label>' +
+    '<select class="prev-input" id="cam-nome-' + idx + '">' +
+      '<option>1.Porta Carini</option>' +
+      '<option>2.Porta S. Agata</option>' +
+      '<option>3.Porta Reale</option>' +
+      '<option>4.Suite Deluxe Con Vasca Idromassaggio</option>' +
+    '</select></div>' +
+  '<div class="prev-input-row">' +
+    '<div class="prev-field"><label class="prev-label">Prezzo soggiorno (€)</label><input class="prev-input" id="cam-prezzo-' + idx + '" type="number" min="0" placeholder="es. 180"></div>' +
+    '<div class="prev-field"><label class="prev-label">Tassa soggiorno (€)</label><input class="prev-input" id="cam-tassa-' + idx + '" type="number" min="0" placeholder="auto" id="cam-tassa-' + idx + '"></div>' +
+  '</div>';
+  document.getElementById('pv-camere-list').appendChild(div);
+
+  // Bind rimuovi
+  div.querySelectorAll('[data-cam-del]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.getElementById('cam-block-' + btn.dataset.camDel).remove();
+    });
+  });
+
+  // Auto-calcolo tassa
+  var prezzoInput = document.getElementById('cam-prezzo-' + idx);
+  var tassaInput  = document.getElementById('cam-tassa-' + idx);
+  function autoTassa(){
+    var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
+    var ci = document.getElementById('pv-checkin').value;
+    var co = document.getElementById('pv-checkout').value;
+    if(ci && co){
+      var n = Math.round((new Date(co) - new Date(ci))/86400000);
+      tassaInput.value = adulti * Math.min(n,4) * 4;
+    }
+  }
+  document.getElementById('pv-checkin').addEventListener('change', autoTassa);
+  document.getElementById('pv-checkout').addEventListener('change', autoTassa);
+  document.getElementById('pv-adulti').addEventListener('change', autoTassa);
+}
+
+function openSiteConDate(){
+  var ci = document.getElementById('pv-checkin').value;
+  var co = document.getElementById('pv-checkout').value;
+  var url = 'https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505';
+  if(ci && co) url += '?checkin=' + ci + '&checkout=' + co;
+  window.open(url, '_blank');
+}
+
+function genId(){
+  // Genera ID univoco tipo "a1b2c-d3e4f-g5h6i"
+  var s = '';
+  var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  for(var i=0;i<15;i++){
+    if(i===5||i===10) s+='-';
+    s += chars[Math.floor(Math.random()*chars.length)];
+  }
+  return s;
+}
+
+async function generaPreventivo(){
+  var nome = document.getElementById('pv-nome').value.trim();
+  var checkin  = document.getElementById('pv-checkin').value;
+  var checkout = document.getElementById('pv-checkout').value;
+  var adulti   = parseInt(document.getElementById('pv-adulti').value)||1;
+  var bambini  = parseInt(document.getElementById('pv-bambini').value)||0;
+  var scadenza = document.getElementById('pv-scadenza').value;
+  var canc     = document.getElementById('pv-cancellazione').value;
+  var note     = document.getElementById('pv-note').value.trim();
+  var ctaLabel = document.getElementById('pv-cta-label').value.trim() || 'Prenota ora';
+
+  if(!nome){ toast('Inserisci il nome dell'ospite'); return; }
+  if(!checkin || !checkout){ toast('Inserisci le date del soggiorno'); return; }
+
+  // Raccogli camere
+  var camere = [];
+  document.querySelectorAll('.cam-block').forEach(function(block){
+    var idx = block.id.replace('cam-block-','');
+    var nomeEl = document.getElementById('cam-nome-'+idx);
+    var prezzoEl = document.getElementById('cam-prezzo-'+idx);
+    var tassaEl = document.getElementById('cam-tassa-'+idx);
+    if(!nomeEl) return;
+    var prezzo = parseFloat(prezzoEl?.value)||0;
+    if(prezzo === 0){ toast('Inserisci il prezzo per ogni camera'); return; }
+    camere.push({
+      nome: nomeEl.value,
+      prezzo: prezzo,
+      tassa: parseFloat(tassaEl?.value)||0,
+      descrizione: descrizioneCamera(nomeEl.value),
+      servizi: serviziCamera(nomeEl.value)
+    });
+  });
+  if(!camere.length){ toast('Aggiungi almeno una camera'); return; }
+
+  var id = genId();
+  var ctaUrl = 'https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505?checkin=' + checkin + '&checkout=' + checkout;
+
+  var data = {id, nome_ospite:nome, checkin, checkout, adulti, bambini,
+    camere: JSON.stringify(camere), note, cancellazione:canc,
+    scadenza: scadenza||null, cta_url:ctaUrl, cta_label:ctaLabel, creato_da:'app'};
+
+  if(SB.isConfigured()){
+    document.getElementById('pv-genera').textContent = 'Salvataggio…';
+    var r = await SB.upsert('preventivi', data, 'id');
+    document.getElementById('pv-genera').textContent = '✨ Genera preventivo';
+    if(!r.ok){ toast('Errore salvataggio: ' + r.status); return; }
+  } else {
+    // Fallback: salva in localStorage
+    var prevs = JSON.parse(localStorage.getItem('bnb_preventivi')||'[]');
+    prevs.unshift(data);
+    localStorage.setItem('bnb_preventivi', JSON.stringify(prevs.slice(0,50)));
+  }
+
+  ultimoIdGenerato = id;
+  var baseUrl = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'preventivo/?id=' + id;
+  document.getElementById('pv-link-url').textContent = baseUrl;
+  document.getElementById('pv-link-box').style.display = 'block';
+  document.getElementById('prev-scroll').scrollTo({top: document.getElementById('prev-scroll').scrollHeight, behavior:'smooth'});
+  toast('✓ Preventivo creato!');
+}
+
+function condividiPreventivo(){
+  if(!ultimoIdGenerato) return;
+  var url = location.origin + location.pathname.replace(/[^\/]*$/, '') + 'preventivo/?id=' + ultimoIdGenerato;
+  var nome = document.getElementById('pv-nome').value.trim();
+  condividiUrl(url, 'Preventivo per ' + nome + ' — Le Stanze dei Tesori');
+}
+
+function condividiUrl(url, titolo){
+  var testo = titolo + '\n' + url;
+  if(navigator.share){
+    navigator.share({title: titolo, text: testo, url: url}).catch(function(){
+      copyToClipboard(url);
+    });
+  } else {
+    copyToClipboard(url);
+  }
+}
+
+function copyToClipboard(text){
+  navigator.clipboard.writeText(text).then(function(){
+    toast('Link copiato!');
+  }).catch(function(){
+    toast('Copia: ' + text);
+  });
+}
+
+function descrizioneCamera(nome){
+  var desc = {
+    '1.Porta Carini': 'Camera matrimoniale elegante con balcone. Arredata in stile siciliano con pavimenti in cotto, letto king size, bagno en-suite con doccia e bidet.',
+    '2.Porta S. Agata': 'Spaziosa camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV smart e bagno privato.',
+    '3.Porta Reale': 'Camera matrimoniale con balcone panoramico. Ideale per chi vuole godere dell'autenticità del centro storico palermitano.',
+    '4.Suite Deluxe Con Vasca Idromassaggio': 'Suite di lusso con vasca idromassaggio privata. L'esperienza più esclusiva delle Stanze dei Tesori, per un soggiorno indimenticabile.'
+  };
+  return desc[nome] || 'Camera matrimoniale con bagno privato, aria condizionata e tutti i comfort.';
+}
+
+function serviziCamera(nome){
+  var base = ['WiFi gratuito','Colazione inclusa','Aria condizionata','Bagno privato','TV Smart','Bidet'];
+  if(nome.includes('Suite')) base.push('Vasca idromassaggio','Prodotti da bagno premium','Vista panoramica');
+  if(nome.includes('Carini') || nome.includes('Reale')) base.push('Balcone');
+  return base;
 }
 
 // ─── REPORTS ─────────────────────────────────────────────
