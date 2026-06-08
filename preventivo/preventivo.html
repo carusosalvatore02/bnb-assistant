@@ -1,1 +1,391 @@
-<!-- placeholder -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Preventivo — Le Stanze dei Tesori</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#c9a84c;--gold-l:#fdf6e3;--gold-d:#8a6d2f;
+  --accent:#1D9E75;--accent-l:#E1F5EE;
+  --coral:#dc2626;--coral-l:#fee2e2;
+  --bg:#fff;--bg2:#fafaf8;--bg3:#f2f0ec;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9a9a96;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
+  --r:14px;--r-sm:8px;
+  --shadow:0 2px 20px rgba(0,0,0,0.08);
+}
+body{background:var(--bg2);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  min-height:100vh;padding-bottom:40px}
+
+/* HEADER */
+.page-header{background:var(--text);color:#fff;padding:28px 20px 24px;text-align:center}
+.page-header .logo{font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.page-header h1{font-size:24px;font-weight:300;letter-spacing:.05em}
+.page-header .sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:4px;letter-spacing:.08em}
+
+/* SCADENZA BANNER */
+#scadenza-banner{padding:10px 20px;text-align:center;font-size:13px;font-weight:500}
+.banner-ok{background:var(--accent-l);color:var(--accent)}
+.banner-warn{background:#fef3c7;color:#92400e}
+.banner-exp{background:var(--coral-l);color:var(--coral)}
+
+/* CONTAINER */
+.container{max-width:580px;margin:0 auto;padding:0 16px}
+
+/* SECTION */
+.section{background:var(--bg);border-radius:var(--r);box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
+.section-header{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
+.section-title{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+.section-body{padding:18px 20px}
+
+/* HERO CAMERA */
+.camera-hero{width:100%;height:200px;object-fit:cover;display:block;background:var(--bg3)}
+.camera-info{padding:18px 20px 0}
+.camera-nome{font-size:20px;font-weight:600;margin-bottom:6px}
+.camera-desc{font-size:13px;color:var(--text2);line-height:1.6}
+.camera-servizi{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding:0 20px 18px}
+.servizio-tag{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--bg3);color:var(--text2)}
+
+/* RIEPILOGO DATE */
+.date-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.date-cell{background:var(--bg);padding:14px 16px}
+.date-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px}
+.date-value{font-size:16px;font-weight:600}
+.date-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.date-full{background:var(--bg);padding:14px 16px;border-top:1px solid var(--border)}
+
+/* PREZZI */
+.price-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.price-row:last-child{border-bottom:none}
+.price-label{font-size:14px;color:var(--text)}
+.price-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.price-value{font-size:14px;font-weight:500}
+.price-total{display:flex;justify-content:space-between;align-items:center;padding:14px 0 0;margin-top:4px;border-top:2px solid var(--text)}
+.price-total-label{font-size:15px;font-weight:700}
+.price-total-value{font-size:22px;font-weight:700;color:var(--gold-d)}
+.price-note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5}
+
+/* MULTI CAMERA */
+.multi-cam{border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px}
+.multi-cam:last-child{border-bottom:none;padding-bottom:0;margin-bottom:0}
+.multi-cam-nome{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)}
+
+/* NOTE */
+.note-box{background:var(--gold-l);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text)}
+
+/* CANCELLAZIONE */
+.canc-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.canc-row:last-child{border-bottom:none}
+.canc-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.canc-text{line-height:1.5;color:var(--text2)}
+.canc-text strong{color:var(--text)}
+
+/* CTA */
+.cta-section{margin-top:20px;padding:0 0 10px}
+.cta-btn{display:block;width:100%;padding:16px;border-radius:var(--r);border:none;background:var(--gold-d);color:#fff;font-size:16px;font-weight:600;text-align:center;cursor:pointer;text-decoration:none;letter-spacing:.03em;-webkit-tap-highlight-color:transparent}
+.cta-btn:active{opacity:.9}
+.cta-sub{text-align:center;font-size:11px;color:var(--text3);margin-top:8px}
+
+/* SCADUTO */
+#scaduto-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
+.scaduto-box{background:#fff;border-radius:var(--r);padding:32px 24px;text-align:center;max-width:340px;width:100%}
+.scaduto-icon{font-size:48px;margin-bottom:12px}
+.scaduto-title{font-size:20px;font-weight:700;margin-bottom:8px}
+.scaduto-sub{font-size:14px;color:var(--text2);line-height:1.5}
+
+/* FOOTER */
+.page-footer{text-align:center;padding:24px 20px 10px;font-size:11px;color:var(--text3)}
+.page-footer a{color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="logo">Le Stanze dei Tesori · Palermo</div>
+  <h1 id="hdr-titolo">Preventivo Soggiorno</h1>
+  <div class="sub" id="hdr-ospite"></div>
+</div>
+
+<div id="scadenza-banner" class="banner-ok"></div>
+
+<div class="container">
+
+  <!-- CAMERE -->
+  <div id="section-camere"></div>
+
+  <!-- DATE & OSPITI -->
+  <div class="section" id="section-date">
+    <div class="section-header"><div class="section-title">📅 Il tuo soggiorno</div></div>
+    <div class="date-grid">
+      <div class="date-cell">
+        <div class="date-label">Check-in</div>
+        <div class="date-value" id="d-checkin">—</div>
+        <div class="date-sub">dalle ore 15:00</div>
+      </div>
+      <div class="date-cell">
+        <div class="date-label">Check-out</div>
+        <div class="date-value" id="d-checkout">—</div>
+        <div class="date-sub">entro le ore 11:00</div>
+      </div>
+    </div>
+    <div class="date-full">
+      <span id="d-notti" style="font-weight:600"></span>
+      <span style="color:var(--text2);font-size:13px"> · </span>
+      <span id="d-ospiti" style="font-size:13px;color:var(--text2)"></span>
+    </div>
+  </div>
+
+  <!-- PREZZI -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">💶 Riepilogo prezzi</div></div>
+    <div class="section-body">
+      <div id="price-rows"></div>
+      <div class="price-total">
+        <div class="price-total-label">Totale</div>
+        <div class="price-total-value" id="price-totale">—</div>
+      </div>
+      <div class="price-note" id="price-note"></div>
+    </div>
+  </div>
+
+  <!-- NOTE -->
+  <div class="section" id="section-note" style="display:none">
+    <div class="section-header"><div class="section-title">📝 Note per te</div></div>
+    <div class="section-body">
+      <div class="note-box" id="note-testo"></div>
+    </div>
+  </div>
+
+  <!-- CANCELLAZIONE -->
+  <div class="section">
+    <div class="section-header"><div class="section-title">📋 Politica di cancellazione</div></div>
+    <div class="section-body" id="canc-body"></div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <a id="cta-btn" href="#" class="cta-btn" target="_blank">Prenota ora</a>
+    <div class="cta-sub" id="cta-sub"></div>
+  </div>
+
+</div>
+
+<div class="page-footer">
+  <strong>Le Stanze dei Tesori</strong> · Via Mariano Stabile 169, Palermo<br>
+  <a href="https://wa.me/393669042290">WhatsApp</a> ·
+  <a href="https://www.lestanzedeitesori.it">Sito web</a>
+</div>
+
+<!-- OVERLAY SCADUTO -->
+<div id="scaduto-overlay">
+  <div class="scaduto-box">
+    <div class="scaduto-icon">⏰</div>
+    <div class="scaduto-title">Preventivo scaduto</div>
+    <div class="scaduto-sub">Questo preventivo non è più valido.<br>Contattaci per ricevere una nuova offerta.</div>
+    <a href="https://wa.me/393669042290" style="display:block;margin-top:20px;padding:12px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;text-align:center">💬 Scrivici su WhatsApp</a>
+  </div>
+</div>
+
+<script>
+// ─── CONFIGURAZIONE SUPABASE ──────────────────────────────────────────────
+var SB_URL = 'https://rtyqvvjrzfjsjywxlnle.supabase.co';
+var SB_KEY = '';  // viene caricata dal localStorage del dominio principale
+
+// Prova a leggere la chiave (funziona se stessa origine)
+try {
+  var k = localStorage.getItem('sb_key');
+  if(k) SB_KEY = k;
+} catch(e){}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────
+function fmtDate(s){
+  if(!s) return '—';
+  var d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+}
+function fmtShort(s){
+  if(!s) return '—';
+  var d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function notti(ci,co){
+  return Math.round((new Date(co) - new Date(ci))/86400000);
+}
+
+// ─── CARICA PREVENTIVO ────────────────────────────────────────────────────
+async function loadPreventivo(){
+  var params = new URLSearchParams(location.search);
+  var id = params.get('id');
+
+  if(!id){
+    showError('Preventivo non trovato');
+    return;
+  }
+
+  // Carica da Supabase
+  var r;
+  try {
+    var res = await fetch(SB_URL + '/rest/v1/preventivi?id=eq.' + id + '&select=*', {
+      headers:{
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Accept': 'application/json'
+      }
+    });
+    var data = await res.json();
+    if(!data || !data.length){ showError('Preventivo non trovato'); return; }
+    r = data[0];
+  } catch(e){
+    showError('Errore di connessione');
+    return;
+  }
+
+  renderPreventivo(r);
+}
+
+function renderPreventivo(r){
+  // Controlla scadenza
+  var oggi = new Date(); oggi.setHours(0,0,0,0);
+  var scad = r.scadenza ? new Date(r.scadenza + 'T00:00:00') : null;
+  var scaduto = scad && scad < oggi;
+  var giorniRimasti = scad ? Math.round((scad - oggi)/86400000) : null;
+
+  // Banner scadenza
+  var banner = document.getElementById('scadenza-banner');
+  if(scaduto){
+    banner.className = 'banner-exp';
+    banner.textContent = '⏰ Preventivo scaduto il ' + fmtShort(r.scadenza);
+    document.getElementById('scaduto-overlay').style.display = 'flex';
+  } else if(giorniRimasti !== null && giorniRimasti <= 3){
+    banner.className = 'banner-warn';
+    banner.textContent = '⚠ Offerta valida ancora ' + giorniRimasti + (giorniRimasti===1?' giorno':' giorni') + ' — scade il ' + fmtShort(r.scadenza);
+  } else if(scad){
+    banner.className = 'banner-ok';
+    banner.textContent = '✓ Preventivo valido fino al ' + fmtShort(r.scadenza);
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Header
+  document.getElementById('hdr-ospite').textContent = 'per ' + r.nome_ospite;
+  document.title = 'Preventivo · ' + r.nome_ospite + ' · Le Stanze dei Tesori';
+
+  // Camere
+  var camere = Array.isArray(r.camere) ? r.camere : JSON.parse(r.camere||'[]');
+  var secCamere = document.getElementById('section-camere');
+  camere.forEach(function(cam){
+    var sec = document.createElement('div');
+    sec.className = 'section';
+    sec.style.marginTop = '16px';
+    var fotoHtml = cam.foto
+      ? '<img class="camera-hero" src="' + cam.foto + '" alt="' + cam.nome + '">'
+      : '<div class="camera-hero" style="display:flex;align-items:center;justify-content:center;font-size:48px">🏨</div>';
+    var serviziHtml = (cam.servizi||[]).map(function(s){
+      return '<span class="servizio-tag">' + s + '</span>';
+    }).join('');
+    sec.innerHTML = fotoHtml +
+      '<div class="camera-info">' +
+        '<div class="camera-nome">🛏 ' + cam.nome + '</div>' +
+        '<div class="camera-desc">' + (cam.descrizione||'') + '</div>' +
+      '</div>' +
+      (serviziHtml ? '<div class="camera-servizi">' + serviziHtml + '</div>' : '');
+    secCamere.appendChild(sec);
+  });
+
+  // Date
+  document.getElementById('d-checkin').textContent = fmtShort(r.checkin);
+  document.getElementById('d-checkout').textContent = fmtShort(r.checkout);
+  var n = notti(r.checkin, r.checkout);
+  document.getElementById('d-notti').textContent = n + (n===1?' notte':' notti');
+  var ospiti = [];
+  if(r.adulti) ospiti.push(r.adulti + (r.adulti===1?' adulto':' adulti'));
+  if(r.bambini) ospiti.push(r.bambini + (r.bambini===1?' bambino':' bambini'));
+  document.getElementById('d-ospiti').textContent = ospiti.join(', ');
+
+  // Prezzi
+  var rows = '';
+  camere.forEach(function(cam){
+    if(camere.length > 1){
+      rows += '<div class="multi-cam"><div class="multi-cam-nome">🛏 ' + cam.nome + '</div>';
+    }
+    rows += '<div class="price-row"><div><div class="price-label">Soggiorno (' + n + ' notti)</div></div>' +
+            '<div class="price-value">€' + parseFloat(cam.prezzo||0).toFixed(2) + '</div></div>';
+    if(cam.tassa > 0){
+      rows += '<div class="price-row"><div><div class="price-label">Tassa di soggiorno</div>' +
+              '<div class="price-sub">€4 × ' + r.adulti + ' adulti × min(' + n + ',4) notti</div></div>' +
+              '<div class="price-value">€' + parseFloat(cam.tassa||0).toFixed(2) + '</div></div>';
+    }
+    if(camere.length > 1) rows += '</div>';
+  });
+  document.getElementById('price-rows').innerHTML = rows;
+
+  var totale = camere.reduce(function(s,c){ return s + parseFloat(c.prezzo||0) + parseFloat(c.tassa||0); }, 0);
+  document.getElementById('price-totale').textContent = '€' + totale.toFixed(2);
+
+  var notePrezzo = [];
+  notePrezzo.push('Il pagamento avviene sul posto al momento del check-in.');
+  if(camere.some(function(c){return (c.tassa||0)>0;}))
+    notePrezzo.push('La tassa di soggiorno è di €4 per adulto per notte (massimo 4 notti).');
+  document.getElementById('price-note').textContent = notePrezzo.join(' ');
+
+  // Note
+  if(r.note){
+    document.getElementById('section-note').style.display = 'block';
+    document.getElementById('note-testo').textContent = r.note;
+  }
+
+  // Cancellazione
+  var cancPolicies = {
+    flessibile: [
+      {icon:'✅', testo:'<strong>Cancellazione gratuita</strong> fino a 24 ore prima del check-in.'},
+      {icon:'💶', testo:'In caso di cancellazione tardiva o no-show, verrà addebitata <strong>1 notte</strong>.'},
+    ],
+    moderata: [
+      {icon:'✅', testo:'<strong>Cancellazione gratuita</strong> fino a 5 giorni prima del check-in.'},
+      {icon:'💶', testo:'Cancellazione entro 5 giorni: addebito di <strong>1 notte</strong>.'},
+      {icon:'🚫', testo:'No-show: addebito dell\'intero soggiorno.'},
+    ],
+    rigida: [
+      {icon:'✅', testo:'<strong>Cancellazione gratuita</strong> fino a 14 giorni prima del check-in.'},
+      {icon:'💶', testo:'Cancellazione entro 14 giorni: addebito del <strong>50% del soggiorno</strong>.'},
+      {icon:'🚫', testo:'No-show o cancellazione last minute: addebito dell\'intero soggiorno.'},
+    ],
+    nonrimborsabile: [
+      {icon:'🚫', testo:'<strong>Tariffa non rimborsabile.</strong> Nessun rimborso in caso di cancellazione o no-show.'},
+      {icon:'💡', testo:'Questa tariffa è stata applicata per offrirti il miglior prezzo possibile.'},
+    ]
+  };
+  var policy = cancPolicies[r.cancellazione || 'moderata'] || cancPolicies.moderata;
+  document.getElementById('canc-body').innerHTML = policy.map(function(p){
+    return '<div class="canc-row"><div class="canc-icon">'+p.icon+'</div><div class="canc-text">'+p.testo+'</div></div>';
+  }).join('');
+
+  // CTA
+  var ctaUrl = r.cta_url ||
+    'https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505' +
+    '?checkin=' + r.checkin + '&checkout=' + r.checkout;
+  var ctaBtn = document.getElementById('cta-btn');
+  if(scaduto){
+    ctaBtn.style.background = 'var(--text3)';
+    ctaBtn.style.pointerEvents = 'none';
+    ctaBtn.textContent = 'Preventivo scaduto';
+  } else {
+    ctaBtn.href = ctaUrl;
+    ctaBtn.textContent = r.cta_label || '🏨 Prenota ora';
+  }
+  document.getElementById('cta-sub').textContent = 'Verrai reindirizzato al nostro sistema di prenotazione' +
+    (r.scadenza && !scaduto ? ' · Offerta valida fino al ' + fmtShort(r.scadenza) : '');
+}
+
+function showError(msg){
+  document.querySelector('.page-header h1').textContent = msg;
+  document.getElementById('scadenza-banner').style.display = 'none';
+}
+
+loadPreventivo();
+</script>
+</body>
+</html>
