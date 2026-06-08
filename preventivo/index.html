@@ -8,8 +8,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
 --gold:#c9a84c;--gold-l:#fdf6e3;--gold-d:#8a6d2f;
---accent:#1D9E75;--accent-l:#E1F5EE;
---coral:#dc2626;--coral-l:#fee2e2;
+--accent:#1D9E75;--accent-l:#E1F5EE;--accent-d:#0F6E56;
+--coral:#dc2626;--coral-l:#fee2e2;--coral-d:#993C1D;
 --bg:#fff;--bg2:#fafaf8;--bg3:#f2f0ec;
 --text:#1a1a18;--text2:#6b6b67;--text3:#9a9a96;
 --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
@@ -38,19 +38,26 @@ min-height:100vh;padding-bottom:40px}
 .section-body{padding:18px 20px}
 
 /* CAMERE SELEZIONABILI */
-.camere-intro{padding:14px 20px 10px;font-size:13px;color:var(--text2);line-height:1.5}
-.cam-card{border:2px solid var(--border);border-radius:var(--r);margin:0 16px 12px;overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s;position:relative}
+.camere-intro{padding:12px 20px 10px;font-size:13px;color:var(--text2);line-height:1.5}
+.cam-card{border:2px solid var(--border);border-radius:var(--r);margin:0 16px 12px;overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s,opacity .2s;position:relative}
 .cam-card:last-child{margin-bottom:16px}
 .cam-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-l)}
+.cam-card.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .cam-card-check{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:50%;border:2px solid var(--border2);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;z-index:2}
 .cam-card.selected .cam-card-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.cam-card.disabled .cam-card-check{background:var(--bg3);color:var(--text3)}
+.cam-unavail-badge{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;z-index:2}
 .camera-hero{width:100%;height:190px;object-fit:cover;display:block;background:var(--bg3)}
-.camera-info{padding:14px 16px 10px}
-.camera-nome{font-size:18px;font-weight:600;margin-bottom:5px;padding-right:36px}
+.camera-info{padding:14px 16px 8px}
+.camera-nome{font-size:18px;font-weight:600;margin-bottom:5px;padding-right:40px}
 .camera-desc{font-size:13px;color:var(--text2);line-height:1.6}
 .camera-servizi{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 14px}
 .servizio-tag{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--bg3);color:var(--text2)}
-.cam-prezzo-badge{display:inline-block;margin:8px 16px 0;padding:5px 12px;border-radius:20px;background:var(--gold-l);color:var(--gold-d);font-size:13px;font-weight:600}
+.cam-prezzo-badge{display:inline-block;margin:6px 16px 0;padding:5px 12px;border-radius:20px;background:var(--gold-l);color:var(--gold-d);font-size:13px;font-weight:600}
+.cam-capienza-badge{display:inline-block;margin:6px 0 0 8px;padding:5px 10px;border-radius:20px;background:var(--bg3);color:var(--text2);font-size:12px}
+
+/* avviso selezione multi-camera */
+.multi-info{margin:0 16px 12px;padding:12px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r-sm);font-size:13px;color:#92400e;line-height:1.5;display:none}
 
 /* DATE */
 .date-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
@@ -61,16 +68,17 @@ min-height:100vh;padding-bottom:40px}
 .date-full{background:var(--bg);padding:14px 16px;border-top:1px solid var(--border)}
 
 /* PREZZI */
-.price-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.price-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
 .price-row:last-child{border-bottom:none}
 .price-label{font-size:14px;color:var(--text)}
 .price-sub{font-size:11px;color:var(--text3);margin-top:2px}
-.price-value{font-size:14px;font-weight:500}
+.price-value{font-size:14px;font-weight:500;white-space:nowrap;margin-left:8px}
 .price-total{display:flex;justify-content:space-between;align-items:center;padding:14px 0 0;margin-top:4px;border-top:2px solid var(--text)}
 .price-total-label{font-size:15px;font-weight:700}
 .price-total-value{font-size:22px;font-weight:700;color:var(--gold-d)}
 .price-note{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5}
 .price-empty{text-align:center;padding:20px 0;color:var(--text3);font-size:13px}
+.price-cam-hdr{font-size:12px;font-weight:700;color:var(--text2);padding:8px 0 4px;text-transform:uppercase;letter-spacing:.05em}
 
 /* NOTE */
 .note-box{background:var(--gold-l);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text)}
@@ -111,10 +119,11 @@ min-height:100vh;padding-bottom:40px}
 
 <div class="container">
 
-<!-- CAMERE SELEZIONABILI -->
+<!-- CAMERE -->
 <div class="section" id="section-camere">
-  <div class="section-header"><div class="section-title">🛏 Scegli la tua camera</div></div>
-  <div class="camere-intro">Seleziona la camera che preferisci. Il totale si aggiorna in automatico.</div>
+  <div class="section-header"><div class="section-title" id="camere-title">🛏 Scegli la tua camera</div></div>
+  <div class="camere-intro" id="camere-intro">Seleziona la camera che preferisci. Il totale si aggiorna in automatico.</div>
+  <div class="multi-info" id="multi-info"></div>
   <div id="camere-list"></div>
 </div>
 
@@ -144,7 +153,7 @@ min-height:100vh;padding-bottom:40px}
 <div class="section">
   <div class="section-header"><div class="section-title">💶 Riepilogo prezzi</div></div>
   <div class="section-body">
-    <div id="price-rows"></div>
+    <div id="price-rows"><div class="price-empty">👆 Seleziona una camera per vedere il totale</div></div>
     <div class="price-total" id="price-total-row" style="display:none">
       <div class="price-total-label">Totale</div>
       <div class="price-total-value" id="price-totale">—</div>
@@ -156,9 +165,7 @@ min-height:100vh;padding-bottom:40px}
 <!-- NOTE -->
 <div class="section" id="section-note" style="display:none">
   <div class="section-header"><div class="section-title">📝 Note per te</div></div>
-  <div class="section-body">
-    <div class="note-box" id="note-testo"></div>
-  </div>
+  <div class="section-body"><div class="note-box" id="note-testo"></div></div>
 </div>
 
 <!-- CANCELLAZIONE -->
@@ -195,212 +202,286 @@ var SB_URL = 'https://rtyqvvjrzfjsjywxlnle.supabase.co';
 var SB_KEY = '';
 try { var k = localStorage.getItem('sb_key'); if(k) SB_KEY = k; } catch(e){}
 
-function fmtDate(s){
-  if(!s) return '—';
-  var d = new Date(s + 'T00:00:00');
-  return d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-}
+// Capienza e adulti tassabili per camera
+var CAM_CFG = {
+  '1.Porta Carini':                         { capienza:2, adultiTassa:2 },
+  '2.Porta S. Agata':                       { capienza:2, adultiTassa:2 },
+  '3.Porta Reale':                          { capienza:2, adultiTassa:2 },
+  '4.Suite Deluxe Con Vasca Idromassaggio': { capienza:4, adultiTassa:4 }
+};
+function cfgCam(nome){ return CAM_CFG[nome] || { capienza:2, adultiTassa:2 }; }
+
 function fmtShort(s){
   if(!s) return '—';
-  var d = new Date(s + 'T00:00:00');
-  return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+  return new Date(s+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
 }
-function notti(ci,co){
-  return Math.round((new Date(co) - new Date(ci))/86400000);
-}
+function notti(ci,co){ return Math.round((new Date(co)-new Date(ci))/86400000); }
 
 // Stato globale
-var _r = null;       // dati preventivo
-var _n = 0;          // notti
+var _r = null;
+var _n = 0;
 var _scaduto = false;
 var _ctaBaseUrl = '';
-var _selectedIdx = null; // indice camera selezionata (null = nessuna)
+var _ospTotali = 0;   // adulti + bambini
+var _adulti = 0;
+var _camere = [];     // array camere dal preventivo
+var _selected = {};   // { idx: true/false } — le camere selezionate dal cliente
+var _modalitaScelta = 'singola'; // 'singola' | 'doppia' | 'suite'
 
 async function loadPreventivo(){
-  var params = new URLSearchParams(location.search);
-  var id = params.get('id');
+  var id = new URLSearchParams(location.search).get('id');
   if(!id){ showError('Preventivo non trovato'); return; }
-
   try {
-    var res = await fetch(SB_URL + '/rest/v1/preventivi?id=eq.' + id + '&select=*', {
-      headers:{ 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Accept': 'application/json' }
+    var res = await fetch(SB_URL+'/rest/v1/preventivi?id=eq.'+id+'&select=*',{
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Accept':'application/json'}
     });
     var data = await res.json();
-    if(!data || !data.length){ showError('Preventivo non trovato'); return; }
+    if(!data||!data.length){ showError('Preventivo non trovato'); return; }
     _r = data[0];
   } catch(e){ showError('Errore di connessione'); return; }
-
   renderPreventivo(_r);
 }
 
 function renderPreventivo(r){
-  // Scadenza
   var oggi = new Date(); oggi.setHours(0,0,0,0);
-  var scad = r.scadenza ? new Date(r.scadenza + 'T00:00:00') : null;
-  _scaduto = scad && scad < oggi;
-  var giorniRimasti = scad ? Math.round((scad - oggi)/86400000) : null;
+  var scad = r.scadenza ? new Date(r.scadenza+'T00:00:00') : null;
+  _scaduto = !!(scad && scad < oggi);
+  var giorniRimasti = scad ? Math.round((scad-oggi)/86400000) : null;
 
   var banner = document.getElementById('scadenza-banner');
   if(_scaduto){
-    banner.className = 'banner-exp';
-    banner.textContent = '⏰ Preventivo scaduto il ' + fmtShort(r.scadenza);
-    document.getElementById('scaduto-overlay').style.display = 'flex';
-  } else if(giorniRimasti !== null && giorniRimasti <= 3){
-    banner.className = 'banner-warn';
-    banner.textContent = '⚠ Offerta valida ancora ' + giorniRimasti + (giorniRimasti===1?' giorno':' giorni') + ' — scade il ' + fmtShort(r.scadenza);
+    banner.className='banner-exp';
+    banner.textContent='⏰ Preventivo scaduto il '+fmtShort(r.scadenza);
+    document.getElementById('scaduto-overlay').style.display='flex';
+  } else if(giorniRimasti!==null && giorniRimasti<=3){
+    banner.className='banner-warn';
+    banner.textContent='⚠ Offerta valida ancora '+giorniRimasti+(giorniRimasti===1?' giorno':' giorni')+' — scade il '+fmtShort(r.scadenza);
   } else if(scad){
-    banner.className = 'banner-ok';
-    banner.textContent = '✓ Preventivo valido fino al ' + fmtShort(r.scadenza);
+    banner.className='banner-ok';
+    banner.textContent='✓ Preventivo valido fino al '+fmtShort(r.scadenza);
+  } else { banner.style.display='none'; }
+
+  document.getElementById('hdr-ospite').textContent='per '+r.nome_ospite;
+  document.title='Preventivo · '+r.nome_ospite+' · Le Stanze dei Tesori';
+
+  _camere = Array.isArray(r.camere) ? r.camere : JSON.parse(r.camere||'[]');
+  _n = notti(r.checkin, r.checkout);
+  _adulti = r.adulti||1;
+  _ospTotali = (r.adulti||0)+(r.bambini||0);
+  _ctaBaseUrl = r.cta_url||('https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505?checkin='+r.checkin+'&checkout='+r.checkout);
+
+  // Determina modalità in base al numero di camere nel preventivo
+  // e al numero di ospiti
+  var numCamere = _camere.length;
+  var hasSuiteOnly = numCamere===1 && _camere[0].nome.includes('Suite');
+  var isDoppio = numCamere>=2;
+
+  if(numCamere===1){
+    // Solo una camera: selezione automatica, nessuna scelta
+    _modalitaScelta = 'singola';
+    document.getElementById('camere-title').textContent = '🛏 La tua camera';
+    document.getElementById('camere-intro').textContent = '';
   } else {
-    banner.style.display = 'none';
+    // Più camere: il cliente sceglie
+    _modalitaScelta = 'scelta';
+    document.getElementById('camere-title').textContent = '🛏 Scegli la tua camera';
+
+    // Calcola capienza totale di ciascuna e se ospiti>2 spiega
+    if(_ospTotali > 2){
+      var infoEl = document.getElementById('multi-info');
+      infoEl.style.display='block';
+      infoEl.innerHTML = '👥 <strong>'+_ospTotali+' ospiti</strong> · Puoi scegliere una singola camera con capienza sufficiente, oppure combinare più camere. Il totale si aggiorna in base alla tua selezione.';
+    } else {
+      document.getElementById('camere-intro').textContent = 'Seleziona la camera che preferisci. Il totale si aggiorna in automatico.';
+    }
   }
 
-  document.getElementById('hdr-ospite').textContent = 'per ' + r.nome_ospite;
-  document.title = 'Preventivo · ' + r.nome_ospite + ' · Le Stanze dei Tesori';
-
-  var camere = Array.isArray(r.camere) ? r.camere : JSON.parse(r.camere||'[]');
-  _n = notti(r.checkin, r.checkout);
-  _ctaBaseUrl = r.cta_url || ('https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505?checkin=' + r.checkin + '&checkout=' + r.checkout);
-
-  // Render camere selezionabili
+  // Render card camere
   var list = document.getElementById('camere-list');
-  list.innerHTML = '';
-  camere.forEach(function(cam, i){
+  list.innerHTML='';
+  _camere.forEach(function(cam,i){
+    var cfg = cfgCam(cam.nome);
+    var capienza = cam.capienza || cfg.capienza;
+
     var card = document.createElement('div');
-    card.className = 'cam-card';
-    card.dataset.idx = i;
+    card.className='cam-card';
+    card.dataset.idx=i;
 
     var fotoHtml = cam.foto
-      ? '<img class="camera-hero" src="' + cam.foto + '" alt="' + cam.nome + '" loading="lazy">'
+      ? '<img class="camera-hero" src="'+cam.foto+'" alt="'+cam.nome+'" loading="lazy">'
       : '<div class="camera-hero" style="display:flex;align-items:center;justify-content:center;font-size:52px;color:var(--text3)">🏨</div>';
 
-    var serviziHtml = (cam.servizi||[]).map(function(s){
-      return '<span class="servizio-tag">' + s + '</span>';
-    }).join('');
+    var serviziHtml=(cam.servizi||[]).map(function(s){return '<span class="servizio-tag">'+s+'</span>';}).join('');
+    var prezzoNotti = parseFloat(cam.prezzo||0);
 
     card.innerHTML =
-      '<div class="cam-card-check">✓</div>' +
-      fotoHtml +
-      '<div class="camera-info">' +
-        '<div class="camera-nome">🛏 ' + cam.nome + '</div>' +
-        '<div class="camera-desc">' + (cam.descrizione||'') + '</div>' +
-      '</div>' +
-      '<div class="cam-prezzo-badge">€' + parseFloat(cam.prezzo||0).toFixed(0) + ' · ' + _n + (_n===1?' notte':' notti') + '</div>' +
-      (serviziHtml ? '<div class="camera-servizi">' + serviziHtml + '</div>' : '<div style="height:14px"></div>');
+      '<div class="cam-card-check">✓</div>'+
+      fotoHtml+
+      '<div class="camera-info">'+
+        '<div class="camera-nome">🛏 '+cam.nome+'</div>'+
+        '<div class="camera-desc">'+(cam.descrizione||'')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;flex-wrap:wrap">'+
+        '<div class="cam-prezzo-badge">€'+prezzoNotti.toFixed(0)+' · '+_n+(_n===1?' notte':' notti')+'</div>'+
+        '<div class="cam-capienza-badge">👥 max '+capienza+' ospiti</div>'+
+      '</div>'+
+      (serviziHtml?'<div class="camera-servizi">'+serviziHtml+'</div>':'<div style="height:14px"></div>');
 
-    card.addEventListener('click', function(){
-      // Deseleziona tutte
-      document.querySelectorAll('.cam-card').forEach(function(c){ c.classList.remove('selected'); });
-      // Seleziona questa
+    if(numCamere===1){
+      // Selezione automatica
       card.classList.add('selected');
-      _selectedIdx = i;
-      updatePrezzi(camere, r);
-    });
+      _selected[i]=true;
+    } else {
+      card.addEventListener('click', function(){ toggleCamera(i); });
+    }
 
     list.appendChild(card);
   });
 
-  // Se c'è una sola camera, selezionala automaticamente
-  if(camere.length === 1){
-    _selectedIdx = 0;
-    list.querySelector('.cam-card').classList.add('selected');
-    updatePrezzi(camere, r);
-  } else {
-    // Mostra stato "seleziona una camera" nei prezzi
-    document.getElementById('price-rows').innerHTML = '<div class="price-empty">👆 Seleziona una camera per vedere il totale</div>';
+  // Se camera singola → aggiorna prezzi subito
+  if(numCamere===1){
+    _selected[0]=true;
+    updatePrezzi();
+    updateCta();
   }
 
   // Date
-  document.getElementById('d-checkin').textContent = fmtShort(r.checkin);
-  document.getElementById('d-checkout').textContent = fmtShort(r.checkout);
-  document.getElementById('d-notti').textContent = _n + (_n===1?' notte':' notti');
-  var ospiti = [];
-  if(r.adulti) ospiti.push(r.adulti + (r.adulti===1?' adulto':' adulti'));
-  if(r.bambini) ospiti.push(r.bambini + (r.bambini===1?' bambino':' bambini'));
-  document.getElementById('d-ospiti').textContent = ospiti.join(', ');
+  document.getElementById('d-checkin').textContent=fmtShort(r.checkin);
+  document.getElementById('d-checkout').textContent=fmtShort(r.checkout);
+  document.getElementById('d-notti').textContent=_n+(_n===1?' notte':' notti');
+  var osp=[];
+  if(r.adulti) osp.push(r.adulti+(r.adulti===1?' adulto':' adulti'));
+  if(r.bambini) osp.push(r.bambini+(r.bambini===1?' bambino':' bambini'));
+  document.getElementById('d-ospiti').textContent=osp.join(', ');
 
   // Note
   if(r.note){
-    document.getElementById('section-note').style.display = 'block';
-    document.getElementById('note-testo').textContent = r.note;
+    document.getElementById('section-note').style.display='block';
+    document.getElementById('note-testo').textContent=r.note;
   }
 
   // Cancellazione
-  var cancPolicies = {
+  var policies={
     flessibile:[
       {icon:'✅',testo:'<strong>Cancellazione gratuita</strong> fino a 24 ore prima del check-in.'},
-      {icon:'💶',testo:'In caso di cancellazione tardiva o no-show, verrà addebitata <strong>1 notte</strong>.'},
+      {icon:'💶',testo:'Cancellazione tardiva o no-show: addebito di <strong>1 notte</strong>.'}
     ],
     moderata:[
       {icon:'✅',testo:'<strong>Cancellazione gratuita</strong> fino a 5 giorni prima del check-in.'},
       {icon:'💶',testo:'Cancellazione entro 5 giorni: addebito di <strong>1 notte</strong>.'},
-      {icon:'🚫',testo:'No-show: addebito dell\'intero soggiorno.'},
+      {icon:'🚫',testo:"No-show: addebito dell'intero soggiorno."}
     ],
     rigida:[
       {icon:'✅',testo:'<strong>Cancellazione gratuita</strong> fino a 14 giorni prima del check-in.'},
       {icon:'💶',testo:'Cancellazione entro 14 giorni: addebito del <strong>50% del soggiorno</strong>.'},
-      {icon:'🚫',testo:'No-show o cancellazione last minute: addebito dell\'intero soggiorno.'},
+      {icon:'🚫',testo:"No-show o cancellazione last minute: addebito dell'intero soggiorno."}
     ],
     nonrimborsabile:[
       {icon:'🚫',testo:'<strong>Tariffa non rimborsabile.</strong> Nessun rimborso in caso di cancellazione o no-show.'},
-      {icon:'💡',testo:'Questa tariffa è stata applicata per offrirti il miglior prezzo possibile.'},
+      {icon:'💡',testo:'Questa tariffa è stata applicata per offrirti il miglior prezzo possibile.'}
     ]
   };
-  var policy = cancPolicies[r.cancellazione || 'moderata'] || cancPolicies.moderata;
-  document.getElementById('canc-body').innerHTML = policy.map(function(p){
+  var pol=policies[r.cancellazione||'moderata']||policies.moderata;
+  document.getElementById('canc-body').innerHTML=pol.map(function(p){
     return '<div class="canc-row"><div class="canc-icon">'+p.icon+'</div><div class="canc-text">'+p.testo+'</div></div>';
   }).join('');
 
-  // CTA (inizialmente disabilitato se più camere)
   if(_scaduto){
-    var btn = document.getElementById('cta-btn');
+    var btn=document.getElementById('cta-btn');
     btn.classList.add('disabled');
-    btn.textContent = 'Preventivo scaduto';
-    document.getElementById('cta-sub').textContent = '';
-  } else if(camere.length === 1){
-    updateCta(camere[0]);
+    btn.textContent='Preventivo scaduto';
+    document.getElementById('cta-sub').textContent='';
   }
 }
 
-function updatePrezzi(camere, r){
-  if(_selectedIdx === null) return;
-  var cam = camere[_selectedIdx];
+function toggleCamera(idx){
+  // Toggle selezione
+  _selected[idx] = !_selected[idx];
 
-  var rows = '';
-  rows += '<div class="price-row"><div><div class="price-label">Soggiorno (' + _n + ' notti)</div>' +
-    '<div class="price-sub">' + cam.nome + '</div></div>' +
-    '<div class="price-value">€' + parseFloat(cam.prezzo||0).toFixed(2) + '</div></div>';
-  if((cam.tassa||0) > 0){
-    rows += '<div class="price-row"><div><div class="price-label">Tassa di soggiorno</div>' +
-      '<div class="price-sub">€4 × ' + r.adulti + ' adulti × min(' + _n + ',4) notti</div></div>' +
-      '<div class="price-value">€' + parseFloat(cam.tassa||0).toFixed(2) + '</div></div>';
+  // Aggiorna visuale carte
+  document.querySelectorAll('.cam-card').forEach(function(card){
+    var i = parseInt(card.dataset.idx);
+    card.classList.toggle('selected', !!_selected[i]);
+  });
+
+  // Verifica capienza: se la selezione attuale supera gli ospiti, avvisa
+  var capTot = Object.keys(_selected).filter(function(i){ return _selected[i]; })
+    .reduce(function(s,i){
+      var cam = _camere[parseInt(i)];
+      return s + (cam.capienza || cfgCam(cam.nome).capienza);
+    }, 0);
+
+  var numSel = Object.values(_selected).filter(Boolean).length;
+
+  if(numSel === 0){
+    document.getElementById('price-rows').innerHTML='<div class="price-empty">👆 Seleziona una camera per vedere il totale</div>';
+    document.getElementById('price-total-row').style.display='none';
+    document.getElementById('price-note').textContent='';
+    var btn=document.getElementById('cta-btn');
+    btn.classList.add('disabled');
+    document.getElementById('cta-sub').textContent='Seleziona una camera per procedere';
+    return;
   }
-  document.getElementById('price-rows').innerHTML = rows;
 
-  var totale = parseFloat(cam.prezzo||0) + parseFloat(cam.tassa||0);
-  document.getElementById('price-totale').textContent = '€' + totale.toFixed(2);
-  document.getElementById('price-total-row').style.display = 'flex';
-
-  var notePrezzo = ['Il pagamento avviene sul posto al momento del check-in.'];
-  if((cam.tassa||0) > 0) notePrezzo.push('La tassa di soggiorno è di €4 per adulto per notte (massimo 4 notti).');
-  document.getElementById('price-note').textContent = notePrezzo.join(' ');
-
-  updateCta(cam);
+  updatePrezzi();
+  updateCta();
 }
 
-function updateCta(cam){
+function updatePrezzi(){
+  var selIdx = Object.keys(_selected).filter(function(i){ return _selected[i]; }).map(Number);
+  if(!selIdx.length) return;
+
+  var rows='';
+  var totale=0;
+  var hasTassa=false;
+
+  selIdx.forEach(function(i){
+    var cam=_camere[i];
+    var cfg=cfgCam(cam.nome);
+    var adTassabili=Math.min(_adulti, cam.capienza||cfg.capienza, cfg.adultiTassa);
+    var tassaCam=adTassabili*Math.min(_n,4)*4;
+    // Usa tassa salvata nel preventivo se è una camera sola (già calcolata dal gestore)
+    // altrimenti ricalcola
+    var tassaUsata = (selIdx.length===1 && _camere.length===1) ? parseFloat(cam.tassa||0) : tassaCam;
+
+    if(selIdx.length>1){
+      rows+='<div class="price-cam-hdr">🛏 '+cam.nome+'</div>';
+    }
+    rows+='<div class="price-row">'+
+      '<div><div class="price-label">Soggiorno ('+_n+' notti)</div></div>'+
+      '<div class="price-value">€'+parseFloat(cam.prezzo||0).toFixed(2)+'</div></div>';
+    if(tassaUsata>0){
+      hasTassa=true;
+      rows+='<div class="price-row">'+
+        '<div><div class="price-label">Tassa di soggiorno</div>'+
+        '<div class="price-sub">€4 × '+adTassabili+' ad. × min('+_n+',4) notti</div></div>'+
+        '<div class="price-value">€'+tassaUsata.toFixed(2)+'</div></div>';
+    }
+    totale+=parseFloat(cam.prezzo||0)+tassaUsata;
+  });
+
+  document.getElementById('price-rows').innerHTML=rows;
+  document.getElementById('price-totale').textContent='€'+totale.toFixed(2);
+  document.getElementById('price-total-row').style.display='flex';
+
+  var note=['Il pagamento avviene sul posto al momento del check-in.'];
+  if(hasTassa) note.push('La tassa di soggiorno è di €4 per adulto per notte (massimo 4 notti), calcolata sulla capienza della camera.');
+  document.getElementById('price-note').textContent=note.join(' ');
+}
+
+function updateCta(){
   if(_scaduto) return;
-  var btn = document.getElementById('cta-btn');
-  btn.href = _ctaBaseUrl;
+  var btn=document.getElementById('cta-btn');
+  btn.href=_ctaBaseUrl;
   btn.classList.remove('disabled');
-  btn.textContent = _r.cta_label || '🏨 Prenota ora';
-  document.getElementById('cta-sub').textContent = 'Verrai reindirizzato al nostro sistema di prenotazione' +
-    (_r.scadenza && !_scaduto ? ' · Offerta valida fino al ' + fmtShort(_r.scadenza) : '');
+  btn.textContent=_r.cta_label||'🏨 Prenota ora';
+  document.getElementById('cta-sub').textContent='Verrai reindirizzato al nostro sistema di prenotazione'+
+    (_r.scadenza&&!_scaduto?' · Offerta valida fino al '+fmtShort(_r.scadenza):'');
 }
 
 function showError(msg){
-  document.querySelector('.page-header h1').textContent = msg;
-  document.getElementById('scadenza-banner').style.display = 'none';
+  document.querySelector('.page-header h1').textContent=msg;
+  document.getElementById('scadenza-banner').style.display='none';
 }
 
 loadPreventivo();
