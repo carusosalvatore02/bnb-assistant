@@ -685,6 +685,23 @@ function configureDatabase(){
 
 // ─── PREVENTIVI ───────────────────────────────────────────────────────────
 
+// Capienza massima per camera (ospiti) e adulti tassabili
+var CAMERE_CONFIG = {
+  '1.Porta Carini':                      { capienza: 2, adultiTassa: 2 },
+  '2.Porta S. Agata':                    { capienza: 2, adultiTassa: 2 },
+  '3.Porta Reale':                       { capienza: 2, adultiTassa: 2 },
+  '4.Suite Deluxe Con Vasca Idromassaggio': { capienza: 4, adultiTassa: 4 }
+};
+
+function capienzaCamera(nome){ return (CAMERE_CONFIG[nome]||{capienza:2}).capienza; }
+function adultiTassaCamera(nome){ return (CAMERE_CONFIG[nome]||{adultiTassa:2}).adultiTassa; }
+
+// Calcola tassa per una singola camera: min(adulti_totali, adultiTassaCamera) * min(notti,4) * 4
+function calcolaTassaCamera(nomeCamera, adultiTotali, notti){
+  var adTassabili = Math.min(adultiTotali, adultiTassaCamera(nomeCamera));
+  return adTassabili * Math.min(notti, 4) * 4;
+}
+
 function initPreventivi(){
   document.getElementById('btn-nuovo-preventivo').addEventListener('click', openNuovoPreventivo);
   document.getElementById('btn-lista-preventivi').addEventListener('click', openListaPreventivi);
@@ -702,6 +719,23 @@ function initPreventivi(){
   document.getElementById('pv-checkin').addEventListener('change', autoTassaTutte);
   document.getElementById('pv-checkout').addEventListener('change', autoTassaTutte);
   document.getElementById('pv-adulti').addEventListener('change', autoTassaTutte);
+}
+
+function autoTassaTutte(){
+  var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
+  var ci = document.getElementById('pv-checkin').value;
+  var co = document.getElementById('pv-checkout').value;
+  if(!ci || !co) return;
+  var n = Math.round((new Date(co) - new Date(ci))/86400000);
+  if(n <= 0) return;
+  document.querySelectorAll('.cam-block').forEach(function(block){
+    var idx = block.id.replace('cam-block-','');
+    var nomeEl = document.getElementById('cam-nome-' + idx);
+    var tassaInput = document.getElementById('cam-tassa-' + idx);
+    if(nomeEl && tassaInput){
+      tassaInput.value = calcolaTassaCamera(nomeEl.value, adulti, n);
+    }
+  });
 }
 
 var pvCamereCount = 0;
@@ -789,7 +823,7 @@ function addCameraBlock(){
     '</select></div>' +
   '<div class="prev-input-row">' +
     '<div class="prev-field"><label class="prev-label">Prezzo soggiorno (€)</label><input class="prev-input" id="cam-prezzo-' + idx + '" type="number" min="0" placeholder="es. 180"></div>' +
-    '<div class="prev-field"><label class="prev-label">Tassa soggiorno (€)</label><input class="prev-input" id="cam-tassa-' + idx + '" type="number" min="0" placeholder="auto" id="cam-tassa-' + idx + '"></div>' +
+    '<div class="prev-field"><label class="prev-label">Tassa soggiorno (€)</label><input class="prev-input" id="cam-tassa-' + idx + '" type="number" min="0" placeholder="auto"></div>' +
   '</div>';
   document.getElementById('pv-camere-list').appendChild(div);
 
@@ -800,23 +834,21 @@ function addCameraBlock(){
     });
   });
 
+  // Ricalcola tassa anche quando si cambia il tipo di camera
+  var nomeEl = document.getElementById('cam-nome-' + idx);
+  nomeEl.addEventListener('change', function(){
+    var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
+    var ci = document.getElementById('pv-checkin').value;
+    var co = document.getElementById('pv-checkout').value;
+    if(ci && co){
+      var n = Math.round((new Date(co) - new Date(ci))/86400000);
+      var tassaInput = document.getElementById('cam-tassa-' + idx);
+      if(tassaInput) tassaInput.value = calcolaTassaCamera(nomeEl.value, adulti, n);
+    }
+  });
+
   // Calcola tassa subito se le date sono già inserite
   autoTassaTutte();
-}
-
-function autoTassaTutte(){
-  var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
-  var ci = document.getElementById('pv-checkin').value;
-  var co = document.getElementById('pv-checkout').value;
-  if(!ci || !co) return;
-  var n = Math.round((new Date(co) - new Date(ci))/86400000);
-  if(n <= 0) return;
-  var tassa = adulti * Math.min(n,4) * 4;
-  document.querySelectorAll('.cam-block').forEach(function(block){
-    var idx = block.id.replace('cam-block-','');
-    var tassaInput = document.getElementById('cam-tassa-' + idx);
-    if(tassaInput) tassaInput.value = tassa;
-  });
 }
 
 function openSiteConDate(){
@@ -854,24 +886,37 @@ async function generaPreventivo(){
 
   // Raccogli camere
   var camere = [];
+  var capienzaTotale = 0;
+  var ok = true;
   document.querySelectorAll('.cam-block').forEach(function(block){
+    if(!ok) return;
     var idx = block.id.replace('cam-block-','');
     var nomeEl = document.getElementById('cam-nome-'+idx);
     var prezzoEl = document.getElementById('cam-prezzo-'+idx);
     var tassaEl = document.getElementById('cam-tassa-'+idx);
     if(!nomeEl) return;
     var prezzo = parseFloat(prezzoEl?.value)||0;
-    if(prezzo === 0){ toast('Inserisci il prezzo per ogni camera'); return; }
+    if(prezzo === 0){ toast('Inserisci il prezzo per ogni camera'); ok=false; return; }
+    var nomeCam = nomeEl.value;
+    capienzaTotale += capienzaCamera(nomeCam);
     camere.push({
-      nome: nomeEl.value,
+      nome: nomeCam,
       prezzo: prezzo,
       tassa: parseFloat(tassaEl?.value)||0,
-      descrizione: descrizioneCamera(nomeEl.value),
-      servizi: serviziCamera(nomeEl.value),
-      foto: fotoCamera(nomeEl.value)
+      descrizione: descrizioneCamera(nomeCam),
+      servizi: serviziCamera(nomeCam),
+      foto: fotoCamera(nomeCam),
+      capienza: capienzaCamera(nomeCam)
     });
   });
+  if(!ok) return;
   if(!camere.length){ toast('Aggiungi almeno una camera'); return; }
+
+  // Validazione capienza
+  if(adulti + bambini > capienzaTotale){
+    toast('⚠ Le camere selezionate non bastano per ' + (adulti+bambini) + ' ospiti (capienza totale: ' + capienzaTotale + ')');
+    return;
+  }
 
   var id = genId();
   var ctaUrl = 'https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505?checkin=' + checkin + '&checkout=' + checkout;
@@ -928,10 +973,10 @@ function copyToClipboard(text){
 
 function descrizioneCamera(nome){
   var desc = {
-    '1.Porta Carini': "Camera matrimoniale con balcone privato affacciato sul centro storico. Pavimenti in cotto siciliano, letto king size, bagno en-suite con doccia e bidet. Aria condizionata e TV Smart.",
-    '2.Porta S. Agata': "Ampia camera matrimoniale con vista sui tetti di Palermo. Arredata con cura, dispone di aria condizionata, TV Smart e bagno privato con doccia.",
-    '3.Porta Reale': "Camera matrimoniale con balcone panoramico sul cuore della Palermo storica. Arredi eleganti, aria condizionata, bagno privato con doccia e bidet.",
-    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite esclusiva con vasca idromassaggio privata. La scelta piu' raffinata delle Stanze dei Tesori: arredi di pregio, ampio spazio, aria condizionata e tutti i comfort per un soggiorno indimenticabile."
+    '1.Porta Carini': "Camera matrimoniale con balcone privato affacciato sul centro storico. Pavimenti in cotto siciliano, letto king size, bagno en-suite con doccia e bidet. Aria condizionata e TV Smart. Fino a 2 ospiti.",
+    '2.Porta S. Agata': "Ampia camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV Smart e bagno privato con doccia. Fino a 2 ospiti.",
+    '3.Porta Reale': "Camera matrimoniale con balcone panoramico sul cuore della Palermo storica. Arredi eleganti, aria condizionata, bagno privato con doccia e bidet. Fino a 2 ospiti.",
+    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite esclusiva con vasca idromassaggio privata. La scelta piu' raffinata delle Stanze dei Tesori: arredi di pregio, ampio spazio, aria condizionata e tutti i comfort. Ideale per famiglie o gruppi fino a 4 ospiti."
   };
   return desc[nome] || "Camera matrimoniale con bagno privato, aria condizionata e tutti i comfort.";
 }
