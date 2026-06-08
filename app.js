@@ -697,6 +697,11 @@ function initPreventivi(){
   // Scadenza default: +7 giorni
   var d = new Date(); d.setDate(d.getDate()+7);
   document.getElementById('pv-scadenza').value = ds(d);
+
+  // Listener globali per auto-calcolo tassa (aggiorna TUTTE le camere)
+  document.getElementById('pv-checkin').addEventListener('change', autoTassaTutte);
+  document.getElementById('pv-checkout').addEventListener('change', autoTassaTutte);
+  document.getElementById('pv-adulti').addEventListener('change', autoTassaTutte);
 }
 
 var pvCamereCount = 0;
@@ -795,21 +800,23 @@ function addCameraBlock(){
     });
   });
 
-  // Auto-calcolo tassa
-  var prezzoInput = document.getElementById('cam-prezzo-' + idx);
-  var tassaInput  = document.getElementById('cam-tassa-' + idx);
-  function autoTassa(){
-    var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
-    var ci = document.getElementById('pv-checkin').value;
-    var co = document.getElementById('pv-checkout').value;
-    if(ci && co){
-      var n = Math.round((new Date(co) - new Date(ci))/86400000);
-      tassaInput.value = adulti * Math.min(n,4) * 4;
-    }
-  }
-  document.getElementById('pv-checkin').addEventListener('change', autoTassa);
-  document.getElementById('pv-checkout').addEventListener('change', autoTassa);
-  document.getElementById('pv-adulti').addEventListener('change', autoTassa);
+  // Calcola tassa subito se le date sono già inserite
+  autoTassaTutte();
+}
+
+function autoTassaTutte(){
+  var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
+  var ci = document.getElementById('pv-checkin').value;
+  var co = document.getElementById('pv-checkout').value;
+  if(!ci || !co) return;
+  var n = Math.round((new Date(co) - new Date(ci))/86400000);
+  if(n <= 0) return;
+  var tassa = adulti * Math.min(n,4) * 4;
+  document.querySelectorAll('.cam-block').forEach(function(block){
+    var idx = block.id.replace('cam-block-','');
+    var tassaInput = document.getElementById('cam-tassa-' + idx);
+    if(tassaInput) tassaInput.value = tassa;
+  });
 }
 
 function openSiteConDate(){
@@ -860,7 +867,8 @@ async function generaPreventivo(){
       prezzo: prezzo,
       tassa: parseFloat(tassaEl?.value)||0,
       descrizione: descrizioneCamera(nomeEl.value),
-      servizi: serviziCamera(nomeEl.value)
+      servizi: serviziCamera(nomeEl.value),
+      foto: fotoCamera(nomeEl.value)
     });
   });
   if(!camere.length){ toast('Aggiungi almeno una camera'); return; }
@@ -920,12 +928,22 @@ function copyToClipboard(text){
 
 function descrizioneCamera(nome){
   var desc = {
-    '1.Porta Carini': "Camera matrimoniale elegante con balcone. Arredata in stile siciliano con pavimenti in cotto, letto king size, bagno en-suite con doccia e bidet.",
-    '2.Porta S. Agata': "Spaziosa camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV smart e bagno privato.",
-    '3.Porta Reale': "Camera matrimoniale con balcone panoramico. Ideale per chi vuole godere dell'autenticita' del centro storico palermitano.",
-    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite di lusso con vasca idromassaggio privata. L'esperienza piu' esclusiva delle Stanze dei Tesori, per un soggiorno indimenticabile."
+    '1.Porta Carini': "Camera matrimoniale con balcone privato affacciato sul centro storico. Pavimenti in cotto siciliano, letto king size, bagno en-suite con doccia e bidet. Aria condizionata e TV Smart.",
+    '2.Porta S. Agata': "Ampia camera matrimoniale con vista sui tetti di Palermo. Arredata con cura, dispone di aria condizionata, TV Smart e bagno privato con doccia.",
+    '3.Porta Reale': "Camera matrimoniale con balcone panoramico sul cuore della Palermo storica. Arredi eleganti, aria condizionata, bagno privato con doccia e bidet.",
+    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite esclusiva con vasca idromassaggio privata. La scelta piu' raffinata delle Stanze dei Tesori: arredi di pregio, ampio spazio, aria condizionata e tutti i comfort per un soggiorno indimenticabile."
   };
   return desc[nome] || "Camera matrimoniale con bagno privato, aria condizionata e tutti i comfort.";
+}
+
+function fotoCamera(nome){
+  var foto = {
+    '1.Porta Carini': '',
+    '2.Porta S. Agata': '',
+    '3.Porta Reale': '',
+    '4.Suite Deluxe Con Vasca Idromassaggio': ''
+  };
+  return foto[nome] || '';
 }
 
 function serviziCamera(nome){
