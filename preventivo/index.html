@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Preventivo — Le Stanze dei Tesori</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13,12 +14,9 @@
 --bg:#fff;--bg2:#fafaf8;--bg3:#f2f0ec;
 --text:#1a1a18;--text2:#6b6b67;--text3:#9a9a96;
 --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
---r:14px;--r-sm:8px;
---shadow:0 2px 20px rgba(0,0,0,0.08);
+--r:14px;--r-sm:8px;--shadow:0 2px 20px rgba(0,0,0,0.08);
 }
-body{background:var(--bg2);color:var(--text);
-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-min-height:100vh;padding-bottom:40px}
+body{background:var(--bg2);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;min-height:100vh;padding-bottom:40px}
 
 .page-header{background:var(--text);color:#fff;padding:28px 20px 24px;text-align:center}
 .page-header .logo{font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
@@ -31,32 +29,27 @@ min-height:100vh;padding-bottom:40px}
 .banner-exp{background:var(--coral-l);color:var(--coral)}
 
 .container{max-width:580px;margin:0 auto;padding:0 16px}
-
 .section{background:var(--bg);border-radius:var(--r);box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
 .section-header{padding:16px 20px 12px;border-bottom:1px solid var(--border)}
 .section-title{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
 .section-body{padding:18px 20px}
 
-/* CAMERE SELEZIONABILI */
+/* CAMERE */
 .camere-intro{padding:12px 20px 10px;font-size:13px;color:var(--text2);line-height:1.5}
-.cam-card{border:2px solid var(--border);border-radius:var(--r);margin:0 16px 12px;overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s,opacity .2s;position:relative}
+.cam-card{border:2px solid var(--border);border-radius:var(--r);margin:0 16px 12px;overflow:hidden;cursor:pointer;transition:border-color .2s,box-shadow .2s;position:relative}
 .cam-card:last-child{margin-bottom:16px}
 .cam-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-l)}
-.cam-card.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .cam-card-check{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:50%;border:2px solid var(--border2);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s;z-index:2}
 .cam-card.selected .cam-card-check{background:var(--accent);border-color:var(--accent);color:#fff}
-.cam-card.disabled .cam-card-check{background:var(--bg3);color:var(--text3)}
-.cam-unavail-badge{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;z-index:2}
 .camera-hero{width:100%;height:190px;object-fit:cover;display:block;background:var(--bg3)}
 .camera-info{padding:14px 16px 8px}
 .camera-nome{font-size:18px;font-weight:600;margin-bottom:5px;padding-right:40px}
 .camera-desc{font-size:13px;color:var(--text2);line-height:1.6}
 .camera-servizi{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 14px}
 .servizio-tag{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--bg3);color:var(--text2)}
-.cam-prezzo-badge{display:inline-block;margin:6px 16px 0;padding:5px 12px;border-radius:20px;background:var(--gold-l);color:var(--gold-d);font-size:13px;font-weight:600}
-.cam-capienza-badge{display:inline-block;margin:6px 0 0 8px;padding:5px 10px;border-radius:20px;background:var(--bg3);color:var(--text2);font-size:12px}
-
-/* avviso selezione multi-camera */
+.cam-badges{display:flex;align-items:center;flex-wrap:wrap;padding:0 16px 0}
+.cam-prezzo-badge{display:inline-block;margin:6px 8px 0 0;padding:5px 12px;border-radius:20px;background:var(--gold-l);color:var(--gold-d);font-size:13px;font-weight:600}
+.cam-capienza-badge{display:inline-block;margin-top:6px;padding:5px 10px;border-radius:20px;background:var(--bg3);color:var(--text2);font-size:12px}
 .multi-info{margin:0 16px 12px;padding:12px 14px;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r-sm);font-size:13px;color:#92400e;line-height:1.5;display:none}
 
 /* DATE */
@@ -81,7 +74,7 @@ min-height:100vh;padding-bottom:40px}
 .price-cam-hdr{font-size:12px;font-weight:700;color:var(--text2);padding:8px 0 4px;text-transform:uppercase;letter-spacing:.05em}
 
 /* NOTE */
-.note-box{background:var(--gold-l);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text)}
+.note-box{background:var(--gold-l);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:12px 14px;font-size:13px;line-height:1.6}
 
 /* CANCELLAZIONE */
 .canc-row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
@@ -90,13 +83,54 @@ min-height:100vh;padding-bottom:40px}
 .canc-text{line-height:1.5;color:var(--text2)}
 .canc-text strong{color:var(--text)}
 
-/* CTA */
-.cta-section{margin-top:20px;padding:0 0 10px}
+/* CTA principale */
+.cta-section{margin-top:20px}
 .cta-btn{display:block;width:100%;padding:16px;border-radius:var(--r);border:none;background:var(--gold-d);color:#fff;font-size:16px;font-weight:600;text-align:center;cursor:pointer;text-decoration:none;letter-spacing:.03em;-webkit-tap-highlight-color:transparent;transition:opacity .15s}
 .cta-btn:active{opacity:.9}
-.cta-btn.disabled{background:var(--text3);pointer-events:none}
+.cta-btn.disabled{background:var(--text3);pointer-events:none;cursor:default}
 .cta-sub{text-align:center;font-size:11px;color:var(--text3);margin-top:8px}
 
+/* FORM PRENOTAZIONE */
+#section-form{display:none}
+.form-field{margin-bottom:16px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.form-label .req{color:var(--coral)}
+.form-input{width:100%;padding:12px 14px;border:1.5px solid var(--border2);border-radius:var(--r-sm);font-size:15px;font-family:inherit;color:var(--text);background:var(--bg);transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-l)}
+.form-input.error{border-color:var(--coral);box-shadow:0 0 0 3px var(--coral-l)}
+.form-input.valid{border-color:var(--accent)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-error{font-size:11px;color:var(--coral-d);margin-top:4px;display:none}
+.field-error.show{display:block}
+.field-hint{font-size:11px;color:var(--text3);margin-top:4px}
+/* Carta */
+.card-type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-left:6px;vertical-align:middle}
+.card-visa{background:#1a1f71;color:#fff}
+.card-mc{background:#eb001b;color:#fff}
+.card-amex{background:#007bc1;color:#fff}
+.card-other{background:var(--bg3);color:var(--text2)}
+/* Submit */
+.submit-btn{width:100%;padding:16px;border-radius:var(--r);border:none;background:var(--accent-d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.submit-btn:active{opacity:.85}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed}
+.submit-note{font-size:11px;color:var(--text3);text-align:center;margin-top:8px;line-height:1.5}
+
+/* RIEPILOGO FORM */
+.recap-box{background:var(--bg2);border-radius:var(--r-sm);padding:14px;margin-bottom:16px}
+.recap-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+.recap-row strong{color:var(--text)}
+
+/* THANK YOU */
+#section-thankyou{display:none}
+.ty-icon{font-size:56px;text-align:center;margin-bottom:12px}
+.ty-title{font-size:22px;font-weight:700;text-align:center;margin-bottom:8px}
+.ty-sub{font-size:14px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:20px}
+.ty-steps{background:var(--bg2);border-radius:var(--r-sm);padding:14px}
+.ty-step{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5}
+.ty-step:last-child{border-bottom:none}
+.ty-step-icon{font-size:18px;flex-shrink:0}
+
+/* OVERLAY SCADUTO */
 #scaduto-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
 .scaduto-box{background:#fff;border-radius:var(--r);padding:32px 24px;text-align:center;max-width:340px;width:100%}
 .scaduto-icon{font-size:48px;margin-bottom:12px}
@@ -122,12 +156,12 @@ min-height:100vh;padding-bottom:40px}
 <!-- CAMERE -->
 <div class="section" id="section-camere">
   <div class="section-header"><div class="section-title" id="camere-title">🛏 Scegli la tua camera</div></div>
-  <div class="camere-intro" id="camere-intro">Seleziona la camera che preferisci. Il totale si aggiorna in automatico.</div>
+  <div class="camere-intro" id="camere-intro">Seleziona la camera che preferisci.</div>
   <div class="multi-info" id="multi-info"></div>
   <div id="camere-list"></div>
 </div>
 
-<!-- DATE & OSPITI -->
+<!-- DATE -->
 <div class="section" id="section-date">
   <div class="section-header"><div class="section-title">📅 Il tuo soggiorno</div></div>
   <div class="date-grid">
@@ -174,18 +208,127 @@ min-height:100vh;padding-bottom:40px}
   <div class="section-body" id="canc-body"></div>
 </div>
 
-<!-- CTA -->
+<!-- CTA PRINCIPALE -->
 <div class="cta-section">
-  <a id="cta-btn" href="#" class="cta-btn disabled" target="_blank">Prenota ora</a>
+  <button id="cta-btn" class="cta-btn disabled">Prenota ora</button>
   <div class="cta-sub" id="cta-sub">Seleziona una camera per procedere</div>
 </div>
 
+<!-- FORM PRENOTAZIONE -->
+<div class="section" id="section-form">
+  <div class="section-header"><div class="section-title">📋 Completa la prenotazione</div></div>
+  <div class="section-body">
+
+    <!-- Riepilogo rapido -->
+    <div class="recap-box" id="form-recap"></div>
+
+    <!-- Dati personali -->
+    <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">👤 Dati personali</div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Nome <span class="req">*</span></label>
+        <input class="form-input" id="f-nome" type="text" placeholder="Mario" autocomplete="given-name">
+        <div class="field-error" id="err-nome">Campo obbligatorio</div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Cognome <span class="req">*</span></label>
+        <input class="form-input" id="f-cognome" type="text" placeholder="Rossi" autocomplete="family-name">
+        <div class="field-error" id="err-cognome">Campo obbligatorio</div>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Email <span class="req">*</span></label>
+      <input class="form-input" id="f-email" type="email" placeholder="mario@email.com" autocomplete="email">
+      <div class="field-error" id="err-email">Inserisci un'email valida</div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Telefono / WhatsApp <span class="req">*</span></label>
+      <input class="form-input" id="f-telefono" type="tel" placeholder="+39 333 1234567" autocomplete="tel">
+      <div class="field-error" id="err-telefono">Campo obbligatorio</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Data di nascita <span class="req">*</span></label>
+        <input class="form-input" id="f-nascita" type="date" autocomplete="bday">
+        <div class="field-error" id="err-nascita">Campo obbligatorio</div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Nazionalità <span class="req">*</span></label>
+        <input class="form-input" id="f-nazione" type="text" placeholder="Italia" autocomplete="country-name">
+        <div class="field-error" id="err-nazione">Campo obbligatorio</div>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Note / Richieste speciali</label>
+      <textarea class="form-input" id="f-note" rows="3" placeholder="Allergie, orario di arrivo, richieste particolari…" style="resize:vertical"></textarea>
+    </div>
+
+    <!-- Carta di credito -->
+    <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 14px">💳 Carta di credito (garanzia)</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5;background:var(--bg2);padding:10px 12px;border-radius:var(--r-sm)">
+      ℹ️ La carta viene usata come garanzia. <strong>Non verrà addebitata nulla ora.</strong> Il pagamento avviene in struttura al check-in.
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Nome intestatario <span class="req">*</span></label>
+      <input class="form-input" id="f-card-nome" type="text" placeholder="MARIO ROSSI" autocomplete="cc-name" style="text-transform:uppercase">
+      <div class="field-error" id="err-card-nome">Campo obbligatorio</div>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">
+        Numero carta <span class="req">*</span>
+        <span id="card-type-badge" class="card-type-badge card-other" style="display:none"></span>
+      </label>
+      <input class="form-input" id="f-card-num" type="tel" placeholder="•••• •••• •••• ••••" maxlength="19" autocomplete="cc-number" inputmode="numeric">
+      <div class="field-error" id="err-card-num">Numero carta non valido</div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Scadenza (MM/AA) <span class="req">*</span></label>
+        <input class="form-input" id="f-card-exp" type="tel" placeholder="MM/AA" maxlength="5" autocomplete="cc-exp" inputmode="numeric">
+        <div class="field-error" id="err-card-exp">Data non valida o carta scaduta</div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">CVV <span class="req">*</span></label>
+        <input class="form-input" id="f-card-cvv" type="tel" placeholder="•••" maxlength="4" autocomplete="cc-csc" inputmode="numeric">
+        <div class="field-error" id="err-card-cvv">CVV non valido</div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submit-btn">
+      <span id="submit-text">✅ Conferma prenotazione</span>
+    </button>
+    <div class="submit-note">Cliccando confermi di aver letto la politica di cancellazione. Riceverai una conferma via email.</div>
+
+  </div>
 </div>
+
+<!-- THANK YOU -->
+<div class="section" id="section-thankyou">
+  <div class="section-body">
+    <div class="ty-icon">🎉</div>
+    <div class="ty-title">Prenotazione confermata!</div>
+    <div class="ty-sub" id="ty-sub">Grazie per aver scelto Le Stanze dei Tesori.<br>Abbiamo ricevuto la tua richiesta.</div>
+    <div class="ty-steps">
+      <div class="ty-step"><div class="ty-step-icon">📧</div><div>Ti abbiamo inviato una <strong>email di conferma</strong> all'indirizzo indicato.</div></div>
+      <div class="ty-step"><div class="ty-step-icon">💬</div><div>Riceverai anche un messaggio <strong>WhatsApp</strong> con il riepilogo del soggiorno.</div></div>
+      <div class="ty-step"><div class="ty-step-icon">🏨</div><div>Check-in dalle <strong>15:00</strong>, check-out entro le <strong>11:00</strong>. Via Mariano Stabile 169, Palermo.</div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
 
 <div class="page-footer">
   <strong>Le Stanze dei Tesori</strong> · Via Mariano Stabile 169, Palermo<br>
-  <a href="https://wa.me/393669042290">WhatsApp</a> ·
-  <a href="https://www.lestanzedeitesori.it">Sito web</a>
+  <a href="https://wa.me/393669042290">WhatsApp</a> · <a href="https://www.lestanzedeitesori.it">Sito web</a>
 </div>
 
 <div id="scaduto-overlay">
@@ -198,36 +341,35 @@ min-height:100vh;padding-bottom:40px}
 </div>
 
 <script>
+// ── EMAILJS CONFIG ─────────────────────────────────────────────────────────
+// ⚠️ DA CONFIGURARE: sostituisci con i tuoi valori da emailjs.com
+var EMAILJS_PUBLIC_KEY  = 'TUO_PUBLIC_KEY';      // Account → API Keys
+var EMAILJS_SERVICE_ID  = 'TUO_SERVICE_ID';      // Email Services → Service ID
+var EMAILJS_TEMPLATE_ID = 'TUO_TEMPLATE_ID';     // Email Templates → Template ID
+
+// ── SUPABASE ───────────────────────────────────────────────────────────────
 var SB_URL = 'https://rtyqvvjrzfjsjywxlnle.supabase.co';
 var SB_KEY = '';
 try { var k = localStorage.getItem('sb_key'); if(k) SB_KEY = k; } catch(e){}
 
-// Capienza e adulti tassabili per camera
+// ── CAPIENZA CAMERE ────────────────────────────────────────────────────────
 var CAM_CFG = {
-  '1.Porta Carini':                         { capienza:2, adultiTassa:2 },
-  '2.Porta S. Agata':                       { capienza:2, adultiTassa:2 },
-  '3.Porta Reale':                          { capienza:2, adultiTassa:2 },
-  '4.Suite Deluxe Con Vasca Idromassaggio': { capienza:4, adultiTassa:4 }
+  '1.Porta Carini':                         {capienza:2, adultiTassa:2},
+  '2.Porta S. Agata':                       {capienza:2, adultiTassa:2},
+  '3.Porta Reale':                          {capienza:2, adultiTassa:2},
+  '4.Suite Deluxe Con Vasca Idromassaggio': {capienza:4, adultiTassa:4}
 };
-function cfgCam(nome){ return CAM_CFG[nome] || { capienza:2, adultiTassa:2 }; }
+function cfgCam(nome){ return CAM_CFG[nome]||{capienza:2,adultiTassa:2}; }
 
-function fmtShort(s){
-  if(!s) return '—';
-  return new Date(s+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
-}
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function fmtShort(s){ return s ? new Date(s+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'; }
 function notti(ci,co){ return Math.round((new Date(co)-new Date(ci))/86400000); }
 
-// Stato globale
-var _r = null;
-var _n = 0;
-var _scaduto = false;
-var _ctaBaseUrl = '';
-var _ospTotali = 0;   // adulti + bambini
-var _adulti = 0;
-var _camere = [];     // array camere dal preventivo
-var _selected = {};   // { idx: true/false } — le camere selezionate dal cliente
-var _modalitaScelta = 'singola'; // 'singola' | 'doppia' | 'suite'
+// ── STATO GLOBALE ──────────────────────────────────────────────────────────
+var _r=null, _n=0, _scaduto=false, _adulti=0, _ospTotali=0;
+var _camere=[], _selected={}, _totale=0, _camereSelezionate=[];
 
+// ── CARICA PREVENTIVO ──────────────────────────────────────────────────────
 async function loadPreventivo(){
   var id = new URLSearchParams(location.search).get('id');
   if(!id){ showError('Preventivo non trovato'); return; }
@@ -243,19 +385,19 @@ async function loadPreventivo(){
 }
 
 function renderPreventivo(r){
-  var oggi = new Date(); oggi.setHours(0,0,0,0);
-  var scad = r.scadenza ? new Date(r.scadenza+'T00:00:00') : null;
-  _scaduto = !!(scad && scad < oggi);
-  var giorniRimasti = scad ? Math.round((scad-oggi)/86400000) : null;
+  var oggi=new Date(); oggi.setHours(0,0,0,0);
+  var scad=r.scadenza?new Date(r.scadenza+'T00:00:00'):null;
+  _scaduto=!!(scad&&scad<oggi);
+  var gg=scad?Math.round((scad-oggi)/86400000):null;
 
-  var banner = document.getElementById('scadenza-banner');
+  var banner=document.getElementById('scadenza-banner');
   if(_scaduto){
     banner.className='banner-exp';
     banner.textContent='⏰ Preventivo scaduto il '+fmtShort(r.scadenza);
     document.getElementById('scaduto-overlay').style.display='flex';
-  } else if(giorniRimasti!==null && giorniRimasti<=3){
+  } else if(gg!==null&&gg<=3){
     banner.className='banner-warn';
-    banner.textContent='⚠ Offerta valida ancora '+giorniRimasti+(giorniRimasti===1?' giorno':' giorni')+' — scade il '+fmtShort(r.scadenza);
+    banner.textContent='⚠ Offerta valida ancora '+gg+(gg===1?' giorno':' giorni')+' — scade il '+fmtShort(r.scadenza);
   } else if(scad){
     banner.className='banner-ok';
     banner.textContent='✓ Preventivo valido fino al '+fmtShort(r.scadenza);
@@ -264,86 +406,50 @@ function renderPreventivo(r){
   document.getElementById('hdr-ospite').textContent='per '+r.nome_ospite;
   document.title='Preventivo · '+r.nome_ospite+' · Le Stanze dei Tesori';
 
-  _camere = Array.isArray(r.camere) ? r.camere : JSON.parse(r.camere||'[]');
-  _n = notti(r.checkin, r.checkout);
-  _adulti = r.adulti||1;
-  _ospTotali = (r.adulti||0)+(r.bambini||0);
-  _ctaBaseUrl = r.cta_url||('https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505?checkin='+r.checkin+'&checkout='+r.checkout);
+  _camere=Array.isArray(r.camere)?r.camere:JSON.parse(r.camere||'[]');
+  _n=notti(r.checkin,r.checkout);
+  _adulti=r.adulti||1;
+  _ospTotali=(r.adulti||0)+(r.bambini||0);
 
-  // Determina modalità in base al numero di camere nel preventivo
-  // e al numero di ospiti
-  var numCamere = _camere.length;
-  var hasSuiteOnly = numCamere===1 && _camere[0].nome.includes('Suite');
-  var isDoppio = numCamere>=2;
-
-  if(numCamere===1){
-    // Solo una camera: selezione automatica, nessuna scelta
-    _modalitaScelta = 'singola';
-    document.getElementById('camere-title').textContent = '🛏 La tua camera';
-    document.getElementById('camere-intro').textContent = '';
+  // Render intestazione
+  if(_camere.length===1){
+    document.getElementById('camere-title').textContent='🛏 La tua camera';
+    document.getElementById('camere-intro').textContent='';
   } else {
-    // Più camere: il cliente sceglie
-    _modalitaScelta = 'scelta';
-    document.getElementById('camere-title').textContent = '🛏 Scegli la tua camera';
-
-    // Calcola capienza totale di ciascuna e se ospiti>2 spiega
-    if(_ospTotali > 2){
-      var infoEl = document.getElementById('multi-info');
-      infoEl.style.display='block';
-      infoEl.innerHTML = '👥 <strong>'+_ospTotali+' ospiti</strong> · Puoi scegliere una singola camera con capienza sufficiente, oppure combinare più camere. Il totale si aggiorna in base alla tua selezione.';
-    } else {
-      document.getElementById('camere-intro').textContent = 'Seleziona la camera che preferisci. Il totale si aggiorna in automatico.';
+    if(_ospTotali>2){
+      var mi=document.getElementById('multi-info');
+      mi.style.display='block';
+      mi.innerHTML='👥 <strong>'+_ospTotali+' ospiti</strong> · Seleziona la camera (o le camere) che preferisci.';
     }
   }
 
-  // Render card camere
-  var list = document.getElementById('camere-list');
+  // Render camere
+  var list=document.getElementById('camere-list');
   list.innerHTML='';
   _camere.forEach(function(cam,i){
-    var cfg = cfgCam(cam.nome);
-    var capienza = cam.capienza || cfg.capienza;
-
-    var card = document.createElement('div');
+    var cfg=cfgCam(cam.nome);
+    var cap=cam.capienza||cfg.capienza;
+    var card=document.createElement('div');
     card.className='cam-card';
     card.dataset.idx=i;
+    var fotoHtml=cam.foto
+      ?'<img class="camera-hero" src="'+cam.foto+'" alt="'+cam.nome+'" loading="lazy">'
+      :'<div class="camera-hero" style="display:flex;align-items:center;justify-content:center;font-size:52px;color:var(--text3)">🏨</div>';
+    var serv=(cam.servizi||[]).map(function(s){return'<span class="servizio-tag">'+s+'</span>';}).join('');
+    card.innerHTML='<div class="cam-card-check">✓</div>'+fotoHtml+
+      '<div class="camera-info"><div class="camera-nome">🛏 '+cam.nome+'</div><div class="camera-desc">'+(cam.descrizione||'')+'</div></div>'+
+      '<div class="cam-badges"><div class="cam-prezzo-badge">€'+parseFloat(cam.prezzo||0).toFixed(0)+' · '+_n+(_n===1?' notte':' notti')+'</div>'+
+      '<div class="cam-capienza-badge">👥 max '+cap+'</div></div>'+
+      (serv?'<div class="camera-servizi">'+serv+'</div>':'<div style="height:14px"></div>');
 
-    var fotoHtml = cam.foto
-      ? '<img class="camera-hero" src="'+cam.foto+'" alt="'+cam.nome+'" loading="lazy">'
-      : '<div class="camera-hero" style="display:flex;align-items:center;justify-content:center;font-size:52px;color:var(--text3)">🏨</div>';
-
-    var serviziHtml=(cam.servizi||[]).map(function(s){return '<span class="servizio-tag">'+s+'</span>';}).join('');
-    var prezzoNotti = parseFloat(cam.prezzo||0);
-
-    card.innerHTML =
-      '<div class="cam-card-check">✓</div>'+
-      fotoHtml+
-      '<div class="camera-info">'+
-        '<div class="camera-nome">🛏 '+cam.nome+'</div>'+
-        '<div class="camera-desc">'+(cam.descrizione||'')+'</div>'+
-      '</div>'+
-      '<div style="display:flex;align-items:center;flex-wrap:wrap">'+
-        '<div class="cam-prezzo-badge">€'+prezzoNotti.toFixed(0)+' · '+_n+(_n===1?' notte':' notti')+'</div>'+
-        '<div class="cam-capienza-badge">👥 max '+capienza+' ospiti</div>'+
-      '</div>'+
-      (serviziHtml?'<div class="camera-servizi">'+serviziHtml+'</div>':'<div style="height:14px"></div>');
-
-    if(numCamere===1){
-      // Selezione automatica
+    if(_camere.length===1){
       card.classList.add('selected');
-      _selected[i]=true;
+      _selected[0]=true;
     } else {
-      card.addEventListener('click', function(){ toggleCamera(i); });
+      card.addEventListener('click',function(){ toggleCamera(i); });
     }
-
     list.appendChild(card);
   });
-
-  // Se camera singola → aggiorna prezzi subito
-  if(numCamere===1){
-    _selected[0]=true;
-    updatePrezzi();
-    updateCta();
-  }
 
   // Date
   document.getElementById('d-checkin').textContent=fmtShort(r.checkin);
@@ -355,36 +461,21 @@ function renderPreventivo(r){
   document.getElementById('d-ospiti').textContent=osp.join(', ');
 
   // Note
-  if(r.note){
-    document.getElementById('section-note').style.display='block';
-    document.getElementById('note-testo').textContent=r.note;
-  }
+  if(r.note){ document.getElementById('section-note').style.display='block'; document.getElementById('note-testo').textContent=r.note; }
 
   // Cancellazione
-  var policies={
-    flessibile:[
-      {icon:'✅',testo:'<strong>Cancellazione gratuita</strong> fino a 24 ore prima del check-in.'},
-      {icon:'💶',testo:'Cancellazione tardiva o no-show: addebito di <strong>1 notte</strong>.'}
-    ],
-    moderata:[
-      {icon:'✅',testo:'<strong>Cancellazione gratuita</strong> fino a 5 giorni prima del check-in.'},
-      {icon:'💶',testo:'Cancellazione entro 5 giorni: addebito di <strong>1 notte</strong>.'},
-      {icon:'🚫',testo:"No-show: addebito dell'intero soggiorno."}
-    ],
-    rigida:[
-      {icon:'✅',testo:'<strong>Cancellazione gratuita</strong> fino a 14 giorni prima del check-in.'},
-      {icon:'💶',testo:'Cancellazione entro 14 giorni: addebito del <strong>50% del soggiorno</strong>.'},
-      {icon:'🚫',testo:"No-show o cancellazione last minute: addebito dell'intero soggiorno."}
-    ],
-    nonrimborsabile:[
-      {icon:'🚫',testo:'<strong>Tariffa non rimborsabile.</strong> Nessun rimborso in caso di cancellazione o no-show.'},
-      {icon:'💡',testo:'Questa tariffa è stata applicata per offrirti il miglior prezzo possibile.'}
-    ]
+  var pol={
+    flessibile:[{i:'✅',t:'<strong>Cancellazione gratuita</strong> fino a 24 ore prima.'},{i:'💶',t:'Cancellazione tardiva o no-show: addebito di <strong>1 notte</strong>.'}],
+    moderata:[{i:'✅',t:'<strong>Cancellazione gratuita</strong> fino a 5 giorni prima.'},{i:'💶',t:'Entro 5 giorni: addebito <strong>1 notte</strong>.'},{i:'🚫',t:"No-show: addebito dell'intero soggiorno."}],
+    rigida:[{i:'✅',t:'<strong>Cancellazione gratuita</strong> fino a 14 giorni prima.'},{i:'💶',t:'Entro 14 giorni: addebito <strong>50%</strong>.'},{i:'🚫',t:"No-show: addebito dell'intero soggiorno."}],
+    nonrimborsabile:[{i:'🚫',t:'<strong>Tariffa non rimborsabile.</strong>'},{i:'💡',t:'Tariffa ridotta applicata per offrirti il miglior prezzo.'}]
   };
-  var pol=policies[r.cancellazione||'moderata']||policies.moderata;
-  document.getElementById('canc-body').innerHTML=pol.map(function(p){
-    return '<div class="canc-row"><div class="canc-icon">'+p.icon+'</div><div class="canc-text">'+p.testo+'</div></div>';
+  var p=pol[r.cancellazione||'moderata']||pol.moderata;
+  document.getElementById('canc-body').innerHTML=p.map(function(x){
+    return'<div class="canc-row"><div class="canc-icon">'+x.i+'</div><div class="canc-text">'+x.t+'</div></div>';
   }).join('');
+
+  if(_camere.length===1){ updatePrezzi(); }
 
   if(_scaduto){
     var btn=document.getElementById('cta-btn');
@@ -395,89 +486,252 @@ function renderPreventivo(r){
 }
 
 function toggleCamera(idx){
-  // Toggle selezione
-  _selected[idx] = !_selected[idx];
-
-  // Aggiorna visuale carte
-  document.querySelectorAll('.cam-card').forEach(function(card){
-    var i = parseInt(card.dataset.idx);
-    card.classList.toggle('selected', !!_selected[i]);
+  _selected[idx]=!_selected[idx];
+  document.querySelectorAll('.cam-card').forEach(function(c){
+    c.classList.toggle('selected',!!_selected[parseInt(c.dataset.idx)]);
   });
-
-  // Verifica capienza: se la selezione attuale supera gli ospiti, avvisa
-  var capTot = Object.keys(_selected).filter(function(i){ return _selected[i]; })
-    .reduce(function(s,i){
-      var cam = _camere[parseInt(i)];
-      return s + (cam.capienza || cfgCam(cam.nome).capienza);
-    }, 0);
-
-  var numSel = Object.values(_selected).filter(Boolean).length;
-
-  if(numSel === 0){
+  var numSel=Object.values(_selected).filter(Boolean).length;
+  if(!numSel){
     document.getElementById('price-rows').innerHTML='<div class="price-empty">👆 Seleziona una camera per vedere il totale</div>';
     document.getElementById('price-total-row').style.display='none';
-    document.getElementById('price-note').textContent='';
-    var btn=document.getElementById('cta-btn');
-    btn.classList.add('disabled');
+    document.getElementById('cta-btn').classList.add('disabled');
     document.getElementById('cta-sub').textContent='Seleziona una camera per procedere';
     return;
   }
-
   updatePrezzi();
-  updateCta();
 }
 
 function updatePrezzi(){
-  var selIdx = Object.keys(_selected).filter(function(i){ return _selected[i]; }).map(Number);
+  var selIdx=Object.keys(_selected).filter(function(i){return _selected[i];}).map(Number);
   if(!selIdx.length) return;
+  _camereSelezionate=selIdx.map(function(i){return _camere[i];});
 
-  var rows='';
-  var totale=0;
-  var hasTassa=false;
-
+  var rows=''; _totale=0; var hasTassa=false;
   selIdx.forEach(function(i){
     var cam=_camere[i];
     var cfg=cfgCam(cam.nome);
-    var adTassabili=Math.min(_adulti, cam.capienza||cfg.capienza, cfg.adultiTassa);
-    var tassaCam=adTassabili*Math.min(_n,4)*4;
-    // Usa tassa salvata nel preventivo se è una camera sola (già calcolata dal gestore)
-    // altrimenti ricalcola
-    var tassaUsata = (selIdx.length===1 && _camere.length===1) ? parseFloat(cam.tassa||0) : tassaCam;
-
-    if(selIdx.length>1){
-      rows+='<div class="price-cam-hdr">🛏 '+cam.nome+'</div>';
-    }
-    rows+='<div class="price-row">'+
-      '<div><div class="price-label">Soggiorno ('+_n+' notti)</div></div>'+
-      '<div class="price-value">€'+parseFloat(cam.prezzo||0).toFixed(2)+'</div></div>';
-    if(tassaUsata>0){
+    var adT=Math.min(_adulti,cam.capienza||cfg.capienza,cfg.adultiTassa);
+    var tassaCam=(selIdx.length===1&&_camere.length===1)?parseFloat(cam.tassa||0):(adT*Math.min(_n,4)*4);
+    if(selIdx.length>1) rows+='<div class="price-cam-hdr">🛏 '+cam.nome+'</div>';
+    rows+='<div class="price-row"><div><div class="price-label">Soggiorno ('+_n+' notti)</div></div><div class="price-value">€'+parseFloat(cam.prezzo||0).toFixed(2)+'</div></div>';
+    if(tassaCam>0){
       hasTassa=true;
-      rows+='<div class="price-row">'+
-        '<div><div class="price-label">Tassa di soggiorno</div>'+
-        '<div class="price-sub">€4 × '+adTassabili+' ad. × min('+_n+',4) notti</div></div>'+
-        '<div class="price-value">€'+tassaUsata.toFixed(2)+'</div></div>';
+      rows+='<div class="price-row"><div><div class="price-label">Tassa di soggiorno</div><div class="price-sub">€4 × '+adT+' ad. × min('+_n+',4) notti</div></div><div class="price-value">€'+tassaCam.toFixed(2)+'</div></div>';
     }
-    totale+=parseFloat(cam.prezzo||0)+tassaUsata;
+    _totale+=parseFloat(cam.prezzo||0)+tassaCam;
   });
 
   document.getElementById('price-rows').innerHTML=rows;
-  document.getElementById('price-totale').textContent='€'+totale.toFixed(2);
+  document.getElementById('price-totale').textContent='€'+_totale.toFixed(2);
   document.getElementById('price-total-row').style.display='flex';
+  document.getElementById('price-note').textContent='Il pagamento avviene sul posto al check-in.'+(hasTassa?' La tassa è €4/adulto/notte (max 4 notti), calcolata sulla capienza della camera.':'');
 
-  var note=['Il pagamento avviene sul posto al momento del check-in.'];
-  if(hasTassa) note.push('La tassa di soggiorno è di €4 per adulto per notte (massimo 4 notti), calcolata sulla capienza della camera.');
-  document.getElementById('price-note').textContent=note.join(' ');
+  if(!_scaduto){
+    var btn=document.getElementById('cta-btn');
+    btn.classList.remove('disabled');
+    btn.textContent='🏨 Prenota ora — €'+_totale.toFixed(2);
+    document.getElementById('cta-sub').textContent='Clicca per compilare i tuoi dati e confermare';
+  }
 }
 
-function updateCta(){
-  if(_scaduto) return;
-  var btn=document.getElementById('cta-btn');
-  btn.href=_ctaBaseUrl;
-  btn.classList.remove('disabled');
-  btn.textContent=_r.cta_label||'🏨 Prenota ora';
-  document.getElementById('cta-sub').textContent='Verrai reindirizzato al nostro sistema di prenotazione'+
-    (_r.scadenza&&!_scaduto?' · Offerta valida fino al '+fmtShort(_r.scadenza):'');
+// CTA → mostra form
+document.getElementById('cta-btn').addEventListener('click',function(){
+  if(this.classList.contains('disabled')) return;
+  // Riepilogo nel form
+  var recap='';
+  _camereSelezionate.forEach(function(c){
+    recap+='<div class="recap-row"><strong>🛏 '+c.nome+'</strong></div>';
+  });
+  recap+='<div class="recap-row"><span>Check-in</span><strong>'+fmtShort(_r.checkin)+'</strong></div>';
+  recap+='<div class="recap-row"><span>Check-out</span><strong>'+fmtShort(_r.checkout)+'</strong></div>';
+  recap+='<div class="recap-row"><span>Ospiti</span><strong>'+_ospTotali+'</strong></div>';
+  recap+='<div class="recap-row" style="border-top:1px solid var(--border);margin-top:6px;padding-top:8px"><span style="font-weight:700">Totale</span><strong style="color:var(--gold-d);font-size:16px">€'+_totale.toFixed(2)+'</strong></div>';
+  document.getElementById('form-recap').innerHTML=recap;
+
+  document.getElementById('section-form').style.display='block';
+  setTimeout(function(){
+    document.getElementById('section-form').scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
+});
+
+// ── VALIDAZIONE CARTA ──────────────────────────────────────────────────────
+function luhn(num){
+  var s=0,odd=false;
+  for(var i=num.length-1;i>=0;i--){
+    var d=parseInt(num[i]);
+    if(odd){d*=2;if(d>9)d-=9;}
+    s+=d; odd=!odd;
+  }
+  return s%10===0;
 }
+
+function cardType(num){
+  if(/^4/.test(num)) return 'Visa';
+  if(/^5[1-5]|^2[2-7]/.test(num)) return 'Mastercard';
+  if(/^3[47]/.test(num)) return 'Amex';
+  return null;
+}
+
+// Formatta numero carta con spazi
+document.getElementById('f-card-num').addEventListener('input',function(){
+  var v=this.value.replace(/\D/g,'').slice(0,16);
+  this.value=v.replace(/(.{4})/g,'$1 ').trim();
+  var t=cardType(v);
+  var badge=document.getElementById('card-type-badge');
+  if(t){
+    badge.style.display='inline-block';
+    badge.textContent=t;
+    badge.className='card-type-badge '+(t==='Visa'?'card-visa':t==='Mastercard'?'card-mc':t==='Amex'?'card-amex':'card-other');
+  } else { badge.style.display='none'; }
+});
+
+// Formatta scadenza MM/AA
+document.getElementById('f-card-exp').addEventListener('input',function(){
+  var v=this.value.replace(/\D/g,'');
+  if(v.length>=2) v=v.slice(0,2)+'/'+v.slice(2,4);
+  this.value=v;
+});
+
+function validateCardExp(val){
+  var m=val.match(/^(\d{2})\/(\d{2})$/);
+  if(!m) return false;
+  var mm=parseInt(m[1]),yy=parseInt(m[2]);
+  if(mm<1||mm>12) return false;
+  var now=new Date();
+  var expYear=2000+yy, expMonth=mm;
+  // Carta valida fino alla fine del mese di scadenza
+  if(expYear<now.getFullYear()) return false;
+  if(expYear===now.getFullYear()&&expMonth<now.getMonth()+1) return false;
+  return true;
+}
+
+// ── VALIDAZIONE FORM ───────────────────────────────────────────────────────
+function showErr(id,msg){
+  var inp=document.getElementById(id);
+  var err=document.getElementById('err-'+id.replace('f-',''));
+  inp.classList.add('error'); inp.classList.remove('valid');
+  if(msg) err.textContent=msg;
+  err.classList.add('show');
+}
+function clearErr(id){
+  var inp=document.getElementById(id);
+  inp.classList.remove('error'); inp.classList.add('valid');
+  document.getElementById('err-'+id.replace('f-','')).classList.remove('show');
+}
+
+function validateForm(){
+  var ok=true;
+  var nome=document.getElementById('f-nome').value.trim();
+  var cognome=document.getElementById('f-cognome').value.trim();
+  var email=document.getElementById('f-email').value.trim();
+  var tel=document.getElementById('f-telefono').value.trim();
+  var nascita=document.getElementById('f-nascita').value;
+  var nazione=document.getElementById('f-nazione').value.trim();
+  var cardNome=document.getElementById('f-card-nome').value.trim();
+  var cardNum=document.getElementById('f-card-num').value.replace(/\s/g,'');
+  var cardExp=document.getElementById('f-card-exp').value.trim();
+  var cardCvv=document.getElementById('f-card-cvv').value.trim();
+
+  if(!nome){showErr('f-nome');ok=false;}else clearErr('f-nome');
+  if(!cognome){showErr('f-cognome');ok=false;}else clearErr('f-cognome');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr('f-email');ok=false;}else clearErr('f-email');
+  if(!tel){showErr('f-telefono');ok=false;}else clearErr('f-telefono');
+  if(!nascita){showErr('f-nascita');ok=false;}else clearErr('f-nascita');
+  if(!nazione){showErr('f-nazione');ok=false;}else clearErr('f-nazione');
+  if(!cardNome){showErr('f-card-nome');ok=false;}else clearErr('f-card-nome');
+
+  // Carta: Luhn + lunghezza
+  if(!cardNum||cardNum.length<15||cardNum.length>16||!luhn(cardNum)){
+    showErr('f-card-num','Numero carta non valido');ok=false;
+  } else clearErr('f-card-num');
+
+  // Scadenza
+  if(!validateCardExp(cardExp)){
+    showErr('f-card-exp','Data non valida o carta scaduta');ok=false;
+  } else clearErr('f-card-exp');
+
+  // CVV
+  if(!cardCvv||cardCvv.length<3||cardCvv.length>4||!/^\d+$/.test(cardCvv)){
+    showErr('f-card-cvv','CVV non valido');ok=false;
+  } else clearErr('f-card-cvv');
+
+  return ok ? {nome,cognome,email,tel,nascita,nazione,
+    cardNome,cardNum,cardExp,cardCvv} : null;
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────────────────────
+document.getElementById('submit-btn').addEventListener('click', async function(){
+  var data=validateForm();
+  if(!data) return;
+
+  var btn=document.getElementById('submit-btn');
+  var txt=document.getElementById('submit-text');
+  btn.disabled=true;
+  txt.textContent='⏳ Invio in corso…';
+
+  var nomiCamere=_camereSelezionate.map(function(c){return c.nome;}).join(', ');
+
+  // Salva conferma su Supabase
+  try {
+    await fetch(SB_URL+'/rest/v1/conferme_preventivi',{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({
+        preventivo_id:_r.id,
+        nome:data.nome, cognome:data.cognome, email:data.email,
+        telefono:data.tel, data_nascita:data.nascita, nazione:data.nazione,
+        note:document.getElementById('f-note').value.trim(),
+        camera_scelta:nomiCamere, totale:_totale,
+        confermato_il:new Date().toISOString()
+      })
+    });
+  } catch(e){ /* non blocchiamo se Supabase fallisce */ }
+
+  // WhatsApp a te
+  var waMsg='🏨 *Nuova prenotazione — Le Stanze dei Tesori*\n\n'
+    +'👤 *Ospite:* '+data.nome+' '+data.cognome+'\n'
+    +'📧 '+data.email+'\n'
+    +'📱 '+data.tel+'\n'
+    +'🌍 '+data.nazione+'\n'
+    +'🎂 '+data.nascita+'\n\n'
+    +'🛏 *Camera:* '+nomiCamere+'\n'
+    +'📅 Check-in: '+fmtShort(_r.checkin)+'\n'
+    +'📅 Check-out: '+fmtShort(_r.checkout)+'\n'
+    +'🌙 '+_n+' notti · '+_ospTotali+' ospiti\n'
+    +'💶 *Totale: €'+_totale.toFixed(2)+'*\n\n'
+    +(document.getElementById('f-note').value.trim()?'📝 Note: '+document.getElementById('f-note').value.trim()+'\n\n':'')
+    +'💳 Carta: '+cardType(data.cardNum)+' '+data.cardNum+' scad. '+data.cardExp+' CVV: '+data.cardCvv;
+  window.open('https://wa.me/393669042290?text='+encodeURIComponent(waMsg),'_blank');
+
+  // Email cliente via EmailJS
+  try {
+    await emailjs.init(EMAILJS_PUBLIC_KEY);
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_name:   data.nome+' '+data.cognome,
+      to_email:  data.email,
+      camera:    nomiCamere,
+      checkin:   fmtShort(_r.checkin),
+      checkout:  fmtShort(_r.checkout),
+      notti:     _n,
+      ospiti:    _ospTotali,
+      totale:    '€'+_totale.toFixed(2),
+      note:      document.getElementById('f-note').value.trim()||'—'
+    });
+  } catch(e){ console.warn('EmailJS error:', e); }
+
+  // Mostra thank you
+  document.getElementById('section-camere').style.display='none';
+  document.getElementById('section-date').style.display='none';
+  document.querySelectorAll('.section').forEach(function(s){
+    if(s.id==='section-thankyou'||s.id==='section-note') return;
+    s.style.display='none';
+  });
+  document.querySelector('.cta-section').style.display='none';
+  document.getElementById('section-form').style.display='none';
+  document.getElementById('section-thankyou').style.display='block';
+  document.getElementById('ty-sub').textContent='Grazie '+data.nome+'! Hai scelto: '+nomiCamere+' · '+fmtShort(_r.checkin)+' → '+fmtShort(_r.checkout)+' · €'+_totale.toFixed(2);
+  document.getElementById('section-thankyou').scrollIntoView({behavior:'smooth'});
+});
 
 function showError(msg){
   document.querySelector('.page-header h1').textContent=msg;
