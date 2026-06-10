@@ -125,17 +125,17 @@ function startApp() {
   if(_currentUser && _currentUser.ruolo === 'staff') {
     applyStaffMode();
   }
-  // Aggiorna header con nome utente e logout
-  var topBar = document.querySelector('.top-bar') || document.querySelector('header');
-  if(topBar) {
-    var logoutBtn = document.createElement('button');
-    logoutBtn.textContent = _currentUser ? _currentUser.nome + ' ↩' : '↩';
-    logoutBtn.style.cssText = 'background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit;';
-    logoutBtn.addEventListener('click', function(){
-      if(confirm('Vuoi uscire?')) logout();
-    });
-    topBar.appendChild(logoutBtn);
-  }
+
+  // Aggiungo badge utente + logout come elemento fisso in basso a destra
+  var badge = document.createElement('div');
+  badge.id = 'user-badge';
+  badge.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:999;background:var(--bg,#fff);border:1px solid rgba(0,0,0,.12);border-radius:20px;padding:7px 14px;font-size:13px;font-weight:500;color:var(--text2,#6b6b67);box-shadow:0 2px 12px rgba(0,0,0,.1);cursor:pointer;display:flex;align-items:center;gap:6px;';
+  badge.innerHTML = '<span>👤 ' + (_currentUser ? _currentUser.nome : '') + '</span><span style="color:var(--text3,#9a9a96)">· Esci</span>';
+  badge.addEventListener('click', function(){
+    if(confirm('Vuoi uscire dall\'account ' + (_currentUser ? _currentUser.nome : '') + '?')) logout();
+  });
+  document.body.appendChild(badge);
+
   bindEvents();
   loadFromStorage();
   initPreventivi();
