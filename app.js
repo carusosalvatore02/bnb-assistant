@@ -1,10 +1,57 @@
 // ─── CONFIGURAZIONE SUPABASE ──────────────────────────────────────────────
-// Inserisci qui le tue credenziali Supabase (Settings → API)
-// Project URL preconfigurato
-var SUPABASE_URL = localStorage.getItem('sb_url') || 'https://rtyqvvjrzfjsjywxlnle.supabase.co';
+var _SB_URL  = 'https://rtyqvvjrzfjsjywxlnle.supabase.co';
+var _SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0eXF2dmpyemZqc2p5d3hsbmxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3Nzc4NTUsImV4cCI6MjA5NjM1Mzg1NX0.FJqsgG4CtJbQAp6b55csBETx_i9_YeoF4LZHcWsyrh0';
+
+// ─── UTENTI PIN ────────────────────────────────────────────────────────────
+// Per cambiare i PIN: sostituisci '1234' e '5678' con i tuoi PIN
+var PIN_USERS = [
+  { pin: '1234', nome: 'Salvatore', ruolo: 'admin' },
+  { pin: '5678', nome: 'Fabiola',   ruolo: 'staff' }
+];
+
+// ─── SESSIONE ──────────────────────────────────────────────────────────────
+var _currentUser = null; // { pin, nome, ruolo }
+
+function pinLogin(pin) {
+  var user = PIN_USERS.find(function(u){ return u.pin === pin; });
+  if(!user) return false;
+  _currentUser = user;
+  // Carica config Supabase in localStorage e nelle variabili globali
+  localStorage.setItem('sb_url', _SB_URL);
+  localStorage.setItem('sb_key', _SB_KEY);
+  SUPABASE_URL = _SB_URL;
+  SUPABASE_KEY = _SB_KEY;
+  // Salva sessione (dura 12 ore)
+  var sess = { ruolo: user.ruolo, nome: user.nome, exp: Date.now() + 12*3600*1000 };
+  localStorage.setItem('bnb_session', JSON.stringify(sess));
+  return true;
+}
+
+function checkSession() {
+  try {
+    var s = JSON.parse(localStorage.getItem('bnb_session') || 'null');
+    if(s && s.exp > Date.now()) {
+      _currentUser = { nome: s.nome, ruolo: s.ruolo };
+      SUPABASE_URL = _SB_URL;
+      SUPABASE_KEY = _SB_KEY;
+      localStorage.setItem('sb_url', _SB_URL);
+      localStorage.setItem('sb_key', _SB_KEY);
+      return true;
+    }
+  } catch(e){}
+  return false;
+}
+
+function logout() {
+  localStorage.removeItem('bnb_session');
+  localStorage.removeItem('sb_key');
+  localStorage.removeItem('sb_url');
+  _currentUser = null;
+  location.reload();
+}
+
+var SUPABASE_URL = _SB_URL;
 var SUPABASE_KEY = localStorage.getItem('sb_key') || '';
-// Salva l'URL se non era già salvato
-if(!localStorage.getItem('sb_url')) localStorage.setItem('sb_url','https://rtyqvvjrzfjsjywxlnle.supabase.co');
 
 // Client Supabase minimale (senza libreria esterna)
 var SB = {
@@ -49,13 +96,7 @@ var SB = {
   }
 };
 
-function setupSupabase(){
-  var key = prompt('Inserisci la Supabase anon public key\n\nDove trovarla:\n1. Vai su supabase.com → il tuo progetto\n2. Settings → API Keys\n3. Tab "Legacy anon, service_role API keys"\n4. Copia la chiave "anon public"');
-  if(!key || key.length < 50) return false;
-  localStorage.setItem('sb_key', key.trim());
-  SUPABASE_KEY = key.trim();
-  return true;
-}
+// setupSupabase() rimossa — configurazione gestita dal PIN login
 
 const EPOCH = new Date(Date.UTC(1899, 11, 30)); // EPOCH UTC esatta per Excel
 
@@ -71,10 +112,45 @@ let bookings = [];
 let chatHistory = [];
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Controlla sessione attiva, altrimenti mostra PIN
+  if(checkSession()) {
+    startApp();
+  } else {
+    showPinScreen();
+  }
+});
+
+function startApp() {
+  // Applica restrizioni ruolo staff
+  if(_currentUser && _currentUser.ruolo === 'staff') {
+    applyStaffMode();
+  }
+  // Aggiorna header con nome utente e logout
+  var topBar = document.querySelector('.top-bar') || document.querySelector('header');
+  if(topBar) {
+    var logoutBtn = document.createElement('button');
+    logoutBtn.textContent = _currentUser ? _currentUser.nome + ' ↩' : '↩';
+    logoutBtn.style.cssText = 'background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit;';
+    logoutBtn.addEventListener('click', function(){
+      if(confirm('Vuoi uscire?')) logout();
+    });
+    topBar.appendChild(logoutBtn);
+  }
   bindEvents();
   loadFromStorage();
   initPreventivi();
-});
+}
+
+function applyStaffMode() {
+  // Staff vede solo i report — nasconde tutte le altre tab
+  var tabsToHide = ['prenotazioni','chat','preventivi','impostazioni'];
+  tabsToHide.forEach(function(t) {
+    var tab = document.querySelector('.tab[data-tab="' + t + '"]');
+    if(tab) tab.style.display = 'none';
+  });
+  // Vai direttamente ai report
+  setTimeout(function(){ showTab('report'); }, 100);
+}
 
 function bindEvents() {
   document.getElementById('sync-btn').addEventListener('click', doSync);
@@ -685,23 +761,6 @@ function configureDatabase(){
 
 // ─── PREVENTIVI ───────────────────────────────────────────────────────────
 
-// Capienza massima per camera (ospiti) e adulti tassabili
-var CAMERE_CONFIG = {
-  '1.Porta Carini':                      { capienza: 2, adultiTassa: 2 },
-  '2.Porta S. Agata':                    { capienza: 2, adultiTassa: 2 },
-  '3.Porta Reale':                       { capienza: 2, adultiTassa: 2 },
-  '4.Suite Deluxe Con Vasca Idromassaggio': { capienza: 4, adultiTassa: 4 }
-};
-
-function capienzaCamera(nome){ return (CAMERE_CONFIG[nome]||{capienza:2}).capienza; }
-function adultiTassaCamera(nome){ return (CAMERE_CONFIG[nome]||{adultiTassa:2}).adultiTassa; }
-
-// Calcola tassa per una singola camera: min(adulti_totali, adultiTassaCamera) * min(notti,4) * 4
-function calcolaTassaCamera(nomeCamera, adultiTotali, notti){
-  var adTassabili = Math.min(adultiTotali, adultiTassaCamera(nomeCamera));
-  return adTassabili * Math.min(notti, 4) * 4;
-}
-
 function initPreventivi(){
   document.getElementById('btn-nuovo-preventivo').addEventListener('click', openNuovoPreventivo);
   document.getElementById('btn-lista-preventivi').addEventListener('click', openListaPreventivi);
@@ -714,28 +773,6 @@ function initPreventivi(){
   // Scadenza default: +7 giorni
   var d = new Date(); d.setDate(d.getDate()+7);
   document.getElementById('pv-scadenza').value = ds(d);
-
-  // Listener globali per auto-calcolo tassa (aggiorna TUTTE le camere)
-  document.getElementById('pv-checkin').addEventListener('change', autoTassaTutte);
-  document.getElementById('pv-checkout').addEventListener('change', autoTassaTutte);
-  document.getElementById('pv-adulti').addEventListener('change', autoTassaTutte);
-}
-
-function autoTassaTutte(){
-  var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
-  var ci = document.getElementById('pv-checkin').value;
-  var co = document.getElementById('pv-checkout').value;
-  if(!ci || !co) return;
-  var n = Math.round((new Date(co) - new Date(ci))/86400000);
-  if(n <= 0) return;
-  document.querySelectorAll('.cam-block').forEach(function(block){
-    var idx = block.id.replace('cam-block-','');
-    var nomeEl = document.getElementById('cam-nome-' + idx);
-    var tassaInput = document.getElementById('cam-tassa-' + idx);
-    if(nomeEl && tassaInput){
-      tassaInput.value = calcolaTassaCamera(nomeEl.value, adulti, n);
-    }
-  });
 }
 
 var pvCamereCount = 0;
@@ -823,7 +860,7 @@ function addCameraBlock(){
     '</select></div>' +
   '<div class="prev-input-row">' +
     '<div class="prev-field"><label class="prev-label">Prezzo soggiorno (€)</label><input class="prev-input" id="cam-prezzo-' + idx + '" type="number" min="0" placeholder="es. 180"></div>' +
-    '<div class="prev-field"><label class="prev-label">Tassa soggiorno (€)</label><input class="prev-input" id="cam-tassa-' + idx + '" type="number" min="0" placeholder="auto"></div>' +
+    '<div class="prev-field"><label class="prev-label">Tassa soggiorno (€)</label><input class="prev-input" id="cam-tassa-' + idx + '" type="number" min="0" placeholder="auto" id="cam-tassa-' + idx + '"></div>' +
   '</div>';
   document.getElementById('pv-camere-list').appendChild(div);
 
@@ -834,21 +871,21 @@ function addCameraBlock(){
     });
   });
 
-  // Ricalcola tassa anche quando si cambia il tipo di camera
-  var nomeEl = document.getElementById('cam-nome-' + idx);
-  nomeEl.addEventListener('change', function(){
+  // Auto-calcolo tassa
+  var prezzoInput = document.getElementById('cam-prezzo-' + idx);
+  var tassaInput  = document.getElementById('cam-tassa-' + idx);
+  function autoTassa(){
     var adulti = parseInt(document.getElementById('pv-adulti').value)||1;
     var ci = document.getElementById('pv-checkin').value;
     var co = document.getElementById('pv-checkout').value;
     if(ci && co){
       var n = Math.round((new Date(co) - new Date(ci))/86400000);
-      var tassaInput = document.getElementById('cam-tassa-' + idx);
-      if(tassaInput) tassaInput.value = calcolaTassaCamera(nomeEl.value, adulti, n);
+      tassaInput.value = adulti * Math.min(n,4) * 4;
     }
-  });
-
-  // Calcola tassa subito se le date sono già inserite
-  autoTassaTutte();
+  }
+  document.getElementById('pv-checkin').addEventListener('change', autoTassa);
+  document.getElementById('pv-checkout').addEventListener('change', autoTassa);
+  document.getElementById('pv-adulti').addEventListener('change', autoTassa);
 }
 
 function openSiteConDate(){
@@ -886,37 +923,23 @@ async function generaPreventivo(){
 
   // Raccogli camere
   var camere = [];
-  var capienzaTotale = 0;
-  var ok = true;
   document.querySelectorAll('.cam-block').forEach(function(block){
-    if(!ok) return;
     var idx = block.id.replace('cam-block-','');
     var nomeEl = document.getElementById('cam-nome-'+idx);
     var prezzoEl = document.getElementById('cam-prezzo-'+idx);
     var tassaEl = document.getElementById('cam-tassa-'+idx);
     if(!nomeEl) return;
     var prezzo = parseFloat(prezzoEl?.value)||0;
-    if(prezzo === 0){ toast('Inserisci il prezzo per ogni camera'); ok=false; return; }
-    var nomeCam = nomeEl.value;
-    capienzaTotale += capienzaCamera(nomeCam);
+    if(prezzo === 0){ toast('Inserisci il prezzo per ogni camera'); return; }
     camere.push({
-      nome: nomeCam,
+      nome: nomeEl.value,
       prezzo: prezzo,
       tassa: parseFloat(tassaEl?.value)||0,
-      descrizione: descrizioneCamera(nomeCam),
-      servizi: serviziCamera(nomeCam),
-      foto: fotoCamera(nomeCam),
-      capienza: capienzaCamera(nomeCam)
+      descrizione: descrizioneCamera(nomeEl.value),
+      servizi: serviziCamera(nomeEl.value)
     });
   });
-  if(!ok) return;
   if(!camere.length){ toast('Aggiungi almeno una camera'); return; }
-
-  // Validazione capienza
-  if(adulti + bambini > capienzaTotale){
-    toast('⚠ Le camere selezionate non bastano per ' + (adulti+bambini) + ' ospiti (capienza totale: ' + capienzaTotale + ')');
-    return;
-  }
 
   var id = genId();
   var ctaUrl = 'https://www.bed-and-breakfast.it/it/booking/sicilia/le-stanze-dei-tesori-palermo/10505?checkin=' + checkin + '&checkout=' + checkout;
@@ -973,22 +996,12 @@ function copyToClipboard(text){
 
 function descrizioneCamera(nome){
   var desc = {
-    '1.Porta Carini': "Camera matrimoniale con balcone privato affacciato sul centro storico. Pavimenti in cotto siciliano, letto king size, bagno en-suite con doccia e bidet. Aria condizionata e TV Smart. Fino a 2 ospiti.",
-    '2.Porta S. Agata': "Ampia camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV Smart e bagno privato con doccia. Fino a 2 ospiti.",
-    '3.Porta Reale': "Camera matrimoniale con balcone panoramico sul cuore della Palermo storica. Arredi eleganti, aria condizionata, bagno privato con doccia e bidet. Fino a 2 ospiti.",
-    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite esclusiva con vasca idromassaggio privata. La scelta piu' raffinata delle Stanze dei Tesori: arredi di pregio, ampio spazio, aria condizionata e tutti i comfort. Ideale per famiglie o gruppi fino a 4 ospiti."
+    '1.Porta Carini': "Camera matrimoniale elegante con balcone. Arredata in stile siciliano con pavimenti in cotto, letto king size, bagno en-suite con doccia e bidet.",
+    '2.Porta S. Agata': "Spaziosa camera matrimoniale con vista sui tetti di Palermo. Arredi curati, aria condizionata, TV smart e bagno privato.",
+    '3.Porta Reale': "Camera matrimoniale con balcone panoramico. Ideale per chi vuole godere dell'autenticita' del centro storico palermitano.",
+    '4.Suite Deluxe Con Vasca Idromassaggio': "Suite di lusso con vasca idromassaggio privata. L'esperienza piu' esclusiva delle Stanze dei Tesori, per un soggiorno indimenticabile."
   };
   return desc[nome] || "Camera matrimoniale con bagno privato, aria condizionata e tutti i comfort.";
-}
-
-function fotoCamera(nome){
-  var foto = {
-    '1.Porta Carini': '',
-    '2.Porta S. Agata': '',
-    '3.Porta Reale': '',
-    '4.Suite Deluxe Con Vasca Idromassaggio': ''
-  };
-  return foto[nome] || '';
 }
 
 function serviziCamera(nome){
@@ -1738,3 +1751,98 @@ function reportFabiola(today,todayStr,label){
   return html;
 }
 
+
+// ─── PIN SCREEN ────────────────────────────────────────────────────────────
+function showPinScreen() {
+  var overlay = document.createElement('div');
+  overlay.id = 'pin-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg,#fff);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px;';
+
+  overlay.innerHTML = [
+    '<div style="text-align:center">',
+      '<div style="font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold,#c9a84c);margin-bottom:6px">Le Stanze dei Tesori</div>',
+      '<div style="font-size:22px;font-weight:600;color:var(--text,#1a1a18)">Inserisci il PIN</div>',
+    '</div>',
+    '<div id="pin-dots" style="display:flex;gap:14px;margin:4px 0"></div>',
+    '<div id="pin-error" style="font-size:13px;color:#dc2626;min-height:18px;text-align:center"></div>',
+    '<div id="pin-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px">',
+    '</div>'
+  ].join('');
+
+  document.body.appendChild(overlay);
+
+  var entered = '';
+  var maxLen = 4;
+
+  function renderDots() {
+    var dots = document.getElementById('pin-dots');
+    dots.innerHTML = '';
+    for(var i=0; i<maxLen; i++) {
+      var d = document.createElement('div');
+      d.style.cssText = 'width:16px;height:16px;border-radius:50%;border:2px solid ' + (i < entered.length ? 'var(--accent,#1D9E75)' : 'rgba(0,0,0,.2)') + ';background:' + (i < entered.length ? 'var(--accent,#1D9E75)' : 'transparent') + ';transition:all .15s;';
+      dots.appendChild(d);
+    }
+  }
+
+  function shakeError(msg) {
+    document.getElementById('pin-error').textContent = msg || 'PIN errato';
+    var dots = document.getElementById('pin-dots');
+    dots.querySelectorAll('div').forEach(function(d){ d.style.background='#dc2626'; d.style.borderColor='#dc2626'; });
+    setTimeout(function(){ entered=''; renderDots(); document.getElementById('pin-error').textContent=''; }, 900);
+  }
+
+  function pressKey(k) {
+    document.getElementById('pin-error').textContent = '';
+    if(k === 'del') {
+      entered = entered.slice(0,-1);
+    } else if(k === 'ok') {
+      if(entered.length < maxLen) return;
+      if(pinLogin(entered)) {
+        overlay.remove();
+        startApp();
+      } else {
+        shakeError('PIN errato');
+      }
+      return;
+    } else {
+      if(entered.length >= maxLen) return;
+      entered += k;
+      // Auto-submit quando raggiunge la lunghezza massima
+      if(entered.length === maxLen) {
+        renderDots();
+        setTimeout(function(){
+          if(pinLogin(entered)) {
+            overlay.remove();
+            startApp();
+          } else {
+            shakeError('PIN errato');
+          }
+        }, 200);
+        return;
+      }
+    }
+    renderDots();
+  }
+
+  var grid = document.getElementById('pin-grid');
+  var keys = ['1','2','3','4','5','6','7','8','9','del','0','ok'];
+  keys.forEach(function(k) {
+    var btn = document.createElement('button');
+    btn.textContent = k === 'del' ? '⌫' : k === 'ok' ? '✓' : k;
+    btn.style.cssText = 'padding:18px;border-radius:12px;border:0.5px solid rgba(0,0,0,.1);background:' +
+      (k==='ok'?'var(--accent,#1D9E75);color:#fff;font-weight:700':k==='del'?'rgba(0,0,0,.05);color:var(--text2,#6b6b67)':'var(--bg2,#fafaf8);color:var(--text,#1a1a18)') +
+      ';font-size:22px;font-weight:500;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;';
+    btn.addEventListener('click', function(){ pressKey(k); });
+    grid.appendChild(btn);
+  });
+
+  renderDots();
+
+  // Supporto tastiera fisica
+  document.addEventListener('keydown', function handler(e) {
+    if(!document.getElementById('pin-overlay')) { document.removeEventListener('keydown',handler); return; }
+    if(e.key>='0' && e.key<='9') pressKey(e.key);
+    else if(e.key==='Backspace') pressKey('del');
+    else if(e.key==='Enter') pressKey('ok');
+  });
+}
